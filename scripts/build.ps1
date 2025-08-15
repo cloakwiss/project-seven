@@ -1,10 +1,167 @@
-.\scripts\setup.ps1
+param(
+	[Alias("c")]
+	[ValidateSet("debug", "release")]
+	[string]$Config,
 
-Get-Location
-Push-Location "./builds"
+	[Alias("t")]
+	[ValidateSet("core", "detour", "hookdll", "all")]
+	[string[]]$Targets
+)
+
+Invoke-Expression .\scripts\setup.ps1
 
 
-Get-Location
-Pop-Location
+# --- Defaults ---
+if (-not $Config)
+{ $Config = "debug" 
+}
+if (-not $Targets)
+{ $Targets = @("core") 
+}
 
-Get-Location
+Invoke-Expression '.\scripts\clear.ps1 -c $Config -t $Targets'
+
+# --- Utility Functions ---
+function Log($msg)
+{
+	Write-Host "[*] $msg"
+}
+
+function ErrorExit($msg)
+{
+	Write-Error $msg
+	exit 1
+}
+
+# --- Build Functions ---
+function Build-Detour
+{
+	$source_detour_exe_path = "./Detours/bin.x64"
+	$source_detour_include_path= "./Detours/include"
+	$source_detour_lib_path= "./Detours/lib.x64"
+
+	$dest_detour_exe_path = "./builds/" + $Config + "/detour_exe"
+	$dest_detour_include_path= "./builds/" + $Config + "/detour_include"
+	$dest_detour_lib_path= "./builds/" + $Config + "/detour_lib"
+
+
+	Log "Building Detour ($Config)..."
+
+	New-Item -ItemType Directory -Path $dest_detour_exe_path -Force
+	New-Item -ItemType Directory -Path $dest_detour_include_path -Force
+	New-Item -ItemType Directory -Path $dest_detour_lib_path -Force
+
+	Push-Location "Detours"
+	if ($Config -eq "debug")
+	{
+		devenv.com .\vc\Detours.sln /Build "DebugMDd|x64"
+	} else
+	{
+		devenv.com .\vc\Detours.sln /Build "ReleaseMD|x64"
+	}
+	Pop-Location
+
+	Copy-Item -Path "$source_detour_exe_path\*" -Destination $dest_detour_exe_path -Recurse -Force
+	Copy-Item -Path "$source_detour_include_path\*" -Destination $dest_detour_include_path -Recurse -Force
+	Copy-Item -Path "$source_detour_lib_path\*" -Destination $dest_detour_lib_path -Recurse -Force
+
+	Log "($Config) Build Complete for Detour"
+}
+
+function Build-HookDLL
+{
+	$detour_lib_path = "./builds/" + $Config + "/detour_lib/detours.lib"
+	$file_path = "./hookdll/hook.cpp"
+
+	$rel_path_prefix = "../../../"
+
+	if (Test-Path $detour_lib_path)
+	{
+	} else
+	{
+		ErrorExit "Detours lib not found, can't compile"
+	}
+
+	Log "Building HookDLL ($Config)..."
+
+	$compile_path = "builds/" + $Config + "/hookdll"
+
+	New-Item -ItemType Directory -Path $compile_path -Force
+
+	$file_path = $rel_path_prefix + $file_path
+	$detour_lib_path = $rel_path_prefix + $detour_lib_path
+
+	Push-Location $compile_path
+	if ($Config -eq "debug")
+	{
+		cl /Zi /LD $file_path /link $detour_lib_path user32.lib
+	} else
+	{
+		cl /LD $file_path /link $detour_lib_path user32.lib
+	}
+	Pop-Location
+}
+
+function Build-Core
+{
+	Log "Building Core ($Config)..."
+	# $hookdll_path = "./builds/" + $Config + "/hookdll/hook.dll"
+	# if (Test-Path $hookdll_path)
+	# {
+	# } else
+	# {
+	# 	ErrorExit "Hook dll not found, can't compile"
+	# }
+
+	$rel_path_prefix = "../../../"
+
+	$file_path = "core/main.cpp"
+
+	$compile_path = "builds/" + $Config + "/core"
+	New-Item -ItemType Directory -Path $compile_path -Force
+
+	$file_path = $rel_path_prefix + $file_path
+
+	Push-Location $compile_path
+	if ($Config -eq "debug")
+	{
+		cl /EHsc /Zi $file_path
+	} else
+	{
+		cl /EHsc $file_path
+	}
+	Pop-Location
+}
+
+
+function Build-All
+{
+	Build-Detour
+	Build-HookDLL
+	Build-Core
+}
+
+# --- Dispatcher ---
+foreach ($target in $Targets)
+{
+	switch ($target.ToLower())
+	{
+		"core"
+		{ Build-Core 
+		}
+		"detour"
+		{ Build-Detour 
+		}
+		"hookdll"
+		{ Build-HookDLL 
+		}
+		"all"
+		{ Build-All 
+		}
+		default
+		{ ErrorExit "Unknown target: $target" 
+		}
+	}
+}
+
+Log "Build complete."

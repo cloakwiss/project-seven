@@ -1,1 +1,7 @@
 *builds/
+*.vs
+
+*.exe
+*.obj
+*.dll
+*.pdb
