@@ -6,7 +6,6 @@
 //                    int nCmdShow) {
 //
 int main() {
-
     const char *pipeName = "\\\\.\\pipe\\DataPipe";
     DWORD pipeType = PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT;
 

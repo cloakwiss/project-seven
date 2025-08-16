@@ -1,5 +1,6 @@
 *builds/
 *.vs
+.vscode/
 
 *.exe
 *.obj

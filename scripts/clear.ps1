@@ -13,8 +13,9 @@ if (-not $Config)
 { $Config = "debug" 
 }
 if (-not $Targets)
-{ $Targets = @("all") 
+{ $Targets = @("core") 
 }
+
 
 function Log($msg)
 {
