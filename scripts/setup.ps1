@@ -46,4 +46,4 @@ $DevEnv_Setup_Command_Suffix = " -SkipAutomaticLocation -Arch amd64 | Out-Null"
 $DevEnv_Setup_Command = $DevEnv_Setup_Path + $DevEnv_Setup_Command_Suffix
 
 Write-Host "Value is $DevEnv_Setup_Command"
-Invoke-Expression $DevEnv_Setup_Command
+Invoke-Expression "$DevEnv_Setup_Command"
