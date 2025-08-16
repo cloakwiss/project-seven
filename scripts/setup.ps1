@@ -41,9 +41,9 @@ if ([string]::IsNullOrWhiteSpace($VS_Install_Path))
 $DevEnv_Setup_Suffix= "\Common7\Tools\Launch-VsDevShell.ps1"
 $DevEnv_Setup_Path = $VS_Install_Path + $DevEnv_Setup_Suffix
 
-$DevEnv_Setup_Command_Suffix = " -SkipAutomaticLocation -Arch amd64 | Out-Null"
+$DevEnv_Setup_Flags = " -SkipAutomaticLocation -Arch amd64 | Out-Null"
 
-$DevEnv_Setup_Command = $DevEnv_Setup_Path + $DevEnv_Setup_Command_Suffix
+$command = "$DevEnv_Setup_Path $DevEnv_Setup_Flags"
+Write-Host "Running: $command"
 
-Write-Host "Value is $DevEnv_Setup_Command"
-Invoke-Expression "$DevEnv_Setup_Command"
+& "$DevEnv_Setup_Path" -SkipAutomaticLocation -Arch amd64

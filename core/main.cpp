@@ -2,11 +2,13 @@
 #include <minwindef.h>
 #include <windows.h>
 
-int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmdLine,
-                   int nCmdShow) {
+// int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmdLine,
+//                    int nCmdShow) {
+//
+int main() {
 
     const char *pipeName = "\\\\.\\pipe\\DataPipe";
-    const DWORD pipeType = PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT;
+    DWORD pipeType = PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT;
 
     HANDLE hPipe = CreateNamedPipeA(TEXT(pipeName), PIPE_ACCESS_INBOUND,
                                     pipeType, 1, 256, 256, 0, NULL);

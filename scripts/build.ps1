@@ -19,6 +19,8 @@ if (-not $Targets)
 { $Targets = @("core") 
 }
 
+$CFlags = @("-D_AMD64_", "-EHsc")
+
 Invoke-Expression '.\scripts\clear.ps1 -c $Config -t $Targets'
 
 # --- Utility Functions ---
@@ -94,10 +96,10 @@ function Build-HookDLL
 	Push-Location $compile_path
 	if ($Config -eq "debug")
 	{
-		cl /Zi /LD $file_path /link $detour_lib_path user32.lib
+		cl $CFlags -Zi -LD $file_path -link $detour_lib_path user32.lib
 	} else
 	{
-		cl /LD $file_path /link $detour_lib_path user32.lib
+		cl $CFlags -LD $file_path -link $detour_lib_path user32.lib
 	}
 	Pop-Location
 }
@@ -125,14 +127,13 @@ function Build-Core
 	Push-Location $compile_path
 	if ($Config -eq "debug")
 	{
-		cl /EHsc /Zi $file_path
+		cl $CFlags -Zi $file_path
 	} else
 	{
-		cl /EHsc $file_path
+		cl $CFlags $file_path
 	}
 	Pop-Location
 }
-
 
 function Build-All
 {

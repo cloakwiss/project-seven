@@ -4,4 +4,5 @@
 *.exe
 *.obj
 *.dll
+*.ilk
 *.pdb
