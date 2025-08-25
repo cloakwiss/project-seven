@@ -14,8 +14,8 @@ void SendToServer(const char *text) {
         if (g_hPipe == INVALID_HANDLE_VALUE) {
             DWORD dwError = GetLastError();
             std::cerr << "Failed to open pipe. Error code: " << dwError << std::endl;
-        return;
-}
+            return;
+        }
 
     }
 
@@ -24,6 +24,14 @@ void SendToServer(const char *text) {
 }
 
 static int(WINAPI *TrueMessageBoxA)(HWND, LPCSTR, LPCSTR, UINT) = MessageBoxA;
+static int WINAPI HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption,
+                                    UINT uType) {
+
+    OutputDebugStringA("Hooked messageBoxA");                              
+    SendToServer(lpText);
+    return TrueMessageBoxA(hWnd, lpText, lpCaption, uType);
+}
+
 static BOOL(WINAPI *TrueCreateProcessA)(
     LPCSTR lpApplicationName,
     LPSTR lpCommandLine,
@@ -53,13 +61,6 @@ static BOOL WINAPI HookedCreateProcessA(LPCSTR lpApplicationName,
     return TrueCreateProcessA(lpApplicationName , lpCommandLine, lpProcessAttributes, lpThreadAttributes, 
         bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 
-}
-static int WINAPI HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption,
-                                    UINT uType) {
-
-    OutputDebugStringA("Hooked messageBoxA");                                    
-    SendToServer(lpText);
-    return TrueMessageBoxA(hWnd, lpText, lpCaption, uType);
 }
 
 __declspec(dllexport) BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason,
