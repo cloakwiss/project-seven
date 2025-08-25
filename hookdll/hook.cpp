@@ -1,15 +1,17 @@
 #include <windows.h>
+#include <iostream>
 #include <cstdio>
 
 #include "../builds/debug/detour_include/detours.h"
 
 static HANDLE g_hPipe = INVALID_HANDLE_VALUE;
 
-void SendToServer(const char *text) {
+void
+SendToServer(const char *text) {
     if (g_hPipe == INVALID_HANDLE_VALUE) {
 
-        g_hPipe = CreateFile(TEXT("\\\\.\\pipe\\MyHookPipe"), GENERIC_WRITE, 0,
-                             NULL, OPEN_EXISTING, 0, NULL);
+        g_hPipe = CreateFile(TEXT("\\\\.\\pipe\\DataPipe"), GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
+                             0, NULL);
 
         if (g_hPipe == INVALID_HANDLE_VALUE) {
             return;
@@ -21,22 +23,24 @@ void SendToServer(const char *text) {
 }
 
 static int(WINAPI *TrueMessageBoxA)(HWND, LPCSTR, LPCSTR, UINT) = MessageBoxA;
+static int WINAPI
+HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 
-static int WINAPI HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption,
-                                    UINT uType) {
-
+    std::cout << "hello bitchesl\n";
     SendToServer(lpText);
     return TrueMessageBoxA(hWnd, lpText, lpCaption, uType);
 }
 
-__declspec(dllexport) BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason,
-                                            LPVOID _) {
+__declspec(dllexport) BOOL APIENTRY
+DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
     if (reason == DLL_PROCESS_ATTACH) {
+
         DetourRestoreAfterWith();
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
-        DetourAttach(&(PVOID &)TrueMessageBoxA, HookedMessageBoxA);
+        DetourAttach(&(PVOID &)TrueMessageBoxA, &(PVOID &)HookedMessageBoxA);
         DetourTransactionCommit();
+
     } else if (reason == DLL_PROCESS_DETACH) {
 
         if (g_hPipe != INVALID_HANDLE_VALUE) {
@@ -46,8 +50,9 @@ __declspec(dllexport) BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason,
 
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
-        DetourDetach(&(PVOID &)TrueMessageBoxA, HookedMessageBoxA);
+        DetourDetach(&(PVOID &)TrueMessageBoxA, &(PVOID &)HookedMessageBoxA);
         DetourTransactionCommit();
     }
+
     return TRUE;
 }

@@ -1,33 +1,60 @@
 #include <iostream>
-#include <minwindef.h>
 #include <windows.h>
 
-// int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmdLine,
-//                    int nCmdShow) {
-//
-int main() {
-    const char *pipeName = "\\\\.\\pipe\\DataPipe";
-    DWORD pipeType = PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT;
+#include "../builds/debug/detour_include/detours.h"
 
-    HANDLE hPipe = CreateNamedPipeA(TEXT(pipeName), PIPE_ACCESS_INBOUND,
-                                    pipeType, 1, 256, 256, 0, NULL);
+int
+main(int argc, char *argv[]) {
 
-    if (hPipe == INVALID_HANDLE_VALUE) {
+    if (argc < 3) {
+        std::cerr << "Usage: " << argv[0] << " <target.exe> <hook.dll>\n";
+        return 1;
+    }
+
+    HANDLE Pipe = CreateNamedPipeA("\\\\.\\pipe\\DataPipe", // Pipe Name
+                                   PIPE_ACCESS_INBOUND,     // Access Type
+                                   PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, // Config
+                                   1, 256, 256, // InstanceCount, OutBuffSize, InBuffSize
+                                   0, NULL);    // Timeout, SecurityAttributes
+
+    if (Pipe == INVALID_HANDLE_VALUE) {
         std::cerr << "Failed to create pipe\n";
         return 1;
     }
 
-    std::cout << "Waiting for Hook DLL...\n";
-    ConnectNamedPipe(hPipe, NULL);
+    STARTUPINFOA StartupInfo = {};
+    PROCESS_INFORMATION ProcessInfo = {};
+    StartupInfo.cb = sizeof(StartupInfo);
 
-    char buffer[256];
-    DWORD bytesRead;
+    if (!DetourCreateProcessWithDllA(argv[1],                    //
+                                     NULL, NULL, NULL, FALSE,    //
+                                     CREATE_DEFAULT_ERROR_MODE,  //
+                                     NULL, NULL,                 //
+                                     &StartupInfo, &ProcessInfo, //
+                                     argv[2], NULL)) {
 
-    while (ReadFile(hPipe, buffer, sizeof(buffer), &bytesRead, NULL) &&
-           bytesRead > 0) {
-        std::cout << "[Program B] Received hook text: " << buffer << "\n";
+        std::cerr << "Failed to launch process with DLL. Error: " << GetLastError() << "\n";
+        return 1;
     }
 
-    CloseHandle(hPipe);
+    std::cout << "Waiting for Hook DLL...\n";
+    if (ConnectNamedPipe(Pipe, NULL)) {
+
+        char buffer[256];
+        DWORD bytesRead;
+
+        while (ReadFile(Pipe, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead > 0) {
+            std::cout << "[Program B] Received hook text: " << buffer << "\n";
+        }
+
+        CloseHandle(Pipe);
+    } else {
+
+        std::cout << "The pipe didn't connect for some reason\n";
+    }
+
+    WaitForSingleObject(ProcessInfo.hProcess, INFINITE);
+    CloseHandle(ProcessInfo.hThread);
+    CloseHandle(ProcessInfo.hProcess);
     return 0;
 }

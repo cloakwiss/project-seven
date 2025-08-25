@@ -1,4 +1,4 @@
-./scripts/build.ps1 -c debug -t core
+./scripts/build.ps1 -c debug -t hookdll
 
 $withdll_path = "./builds/debug/detour_exe/withdll.exe"
 $hookdll_path = "./builds/debug/hookdll/hook.dll"

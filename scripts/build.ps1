@@ -4,7 +4,7 @@ param(
 	[string]$Config,
 
 	[Alias("t")]
-	[ValidateSet("core", "detour", "hookdll", "all")]
+	[ValidateSet("samples", "core", "detour", "hookdll", "all")]
 	[string[]]$Targets
 )
 
@@ -135,8 +135,34 @@ function Build-Core
 	Pop-Location
 }
 
+function Build-Samples
+{
+	Log "Building Samples ($Config)..."
+	# $hookdll_path = "./builds/" + $Config + "/hookdll/hook.dll"
+	# if (Test-Path $hookdll_path)
+	# {
+	# } else
+	# {
+	# 	ErrorExit "Hook dll not found, can't compile"
+	# }
+
+	$rel_path_prefix = "../../../"
+
+	$file_path = "/sample_targets/message_box.cpp"
+
+	$compile_path = "builds/" + $Config + "/samples"
+	New-Item -ItemType Directory -Path $compile_path -Force
+
+	$file_path = $rel_path_prefix + $file_path
+
+	Push-Location $compile_path
+	cl $CFlags -Zi $file_path
+	Pop-Location
+}
+
 function Build-All
 {
+	Build-Samples
 	Build-Detour
 	Build-HookDLL
 	Build-Core
@@ -147,6 +173,9 @@ foreach ($target in $Targets)
 {
 	switch ($target.ToLower())
 	{
+		"samples"
+		{ Build-Samples
+		}
 		"core"
 		{ Build-Core 
 		}

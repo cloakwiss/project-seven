@@ -4,3 +4,6 @@
 [submodule "synop"]
 	path = synop
 	url = https://github.com/cloakwiss/synop.git
+[submodule "ntdoc-scrape"]
+	path = ntdoc-scrape
+	url = https://github.com/cloakwiss/ntdoc-scrape.git
