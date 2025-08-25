@@ -1,6 +1,7 @@
 #include <iostream>
 #include <minwindef.h>
 #include <windows.h>
+#include <winnt.h>
 
 // int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmdLine,
 //                    int nCmdShow) {
