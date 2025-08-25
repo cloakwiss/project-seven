@@ -7,3 +7,5 @@
 *.dll
 *.ilk
 *.pdb
+*.db
+matched.txt

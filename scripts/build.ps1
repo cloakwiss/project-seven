@@ -4,7 +4,7 @@ param(
 	[string]$Config,
 
 	[Alias("t")]
-	[ValidateSet("core", "detour", "hookdll", "all")]
+	[ValidateSet("core", "detour", "hookdll", "all", "sample_targets")]
 	[string[]]$Targets
 )
 
@@ -135,11 +135,41 @@ function Build-Core
 	Pop-Location
 }
 
+function Build-SampleTargets
+{
+    $source_dir = "./sample_targets"
+    $output_dir = "./builds/debug/sample_targets" 
+
+    # Create output directory
+    New-Item -ItemType Directory -Path $output_dir -Force
+
+    # Get all .cpp files in sample_targets folder
+    $cpp_files = Get-ChildItem -Path $source_dir -Filter "*.cpp"
+
+    foreach ($file in $cpp_files)
+    {
+        $source_path = $file.FullName
+        $exe_name = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+        $exe_path = Join-Path $output_dir $exe_name
+
+        Write-Host "Compiling $source_path to $exe_path.exe"
+
+        # Compile using g++
+        & g++ -o "$exe_path.exe" $source_path
+        if ($LASTEXITCODE -ne 0)
+        {
+            Write-Error "Compilation failed for $source_path"
+            exit 1
+        }
+    }
+}
+
 function Build-All
 {
 	Build-Detour
 	Build-HookDLL
 	Build-Core
+	Build-SampleTargets
 }
 
 # --- Dispatcher ---
@@ -158,6 +188,9 @@ foreach ($target in $Targets)
 		}
 		"all"
 		{ Build-All 
+		}
+		"sample_targets"
+		{ Build-SampleTargets 
 		}
 		default
 		{ ErrorExit "Unknown target: $target" 
