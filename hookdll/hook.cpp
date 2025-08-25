@@ -1,6 +1,6 @@
 #include <windows.h>
 #include <cstdio>
-
+#include <iostream>
 #include "../builds/debug/detour_include/detours.h"
 
 static HANDLE g_hPipe = INVALID_HANDLE_VALUE;
@@ -8,12 +8,15 @@ static HANDLE g_hPipe = INVALID_HANDLE_VALUE;
 void SendToServer(const char *text) {
     if (g_hPipe == INVALID_HANDLE_VALUE) {
 
-        g_hPipe = CreateFile(TEXT("\\\\.\\pipe\\MyHookPipe"), GENERIC_WRITE, 0,
+        g_hPipe = CreateFile(TEXT("\\\\.\\pipe\\DataPipe"), GENERIC_WRITE, 0,
                              NULL, OPEN_EXISTING, 0, NULL);
-
+        
         if (g_hPipe == INVALID_HANDLE_VALUE) {
-            return;
-        }
+            DWORD dwError = GetLastError();
+            std::cerr << "Failed to open pipe. Error code: " << dwError << std::endl;
+        return;
+}
+
     }
 
     DWORD bytesWritten = 0;
@@ -21,10 +24,40 @@ void SendToServer(const char *text) {
 }
 
 static int(WINAPI *TrueMessageBoxA)(HWND, LPCSTR, LPCSTR, UINT) = MessageBoxA;
+static BOOL(WINAPI *TrueCreateProcessA)(
+    LPCSTR lpApplicationName,
+    LPSTR lpCommandLine,
+    LPSECURITY_ATTRIBUTES lpProcessAttributes,
+    LPSECURITY_ATTRIBUTES lpThreadAttributes,
+    BOOL bInheritHandles,
+    DWORD dwCreationFlags,
+    LPVOID lpEnvironment,
+    LPCSTR lpCurrentDirectory,
+    LPSTARTUPINFOA lpStartupInfo,
+    LPPROCESS_INFORMATION lpProcessInformation
+) = CreateProcessA;
 
+static BOOL WINAPI HookedCreateProcessA(LPCSTR lpApplicationName,
+    LPSTR lpCommandLine,
+    LPSECURITY_ATTRIBUTES lpProcessAttributes,
+    LPSECURITY_ATTRIBUTES lpThreadAttributes,
+    BOOL bInheritHandles,
+    DWORD dwCreationFlags,
+    LPVOID lpEnvironment,
+    LPCSTR lpCurrentDirectory,
+    LPSTARTUPINFOA lpStartupInfo,
+    LPPROCESS_INFORMATION lpProcessInformation){
+        OutputDebugStringA("hooked CreateProcessA");
+        SendToServer("Hooked CreateProcessA");
+
+    return TrueCreateProcessA(lpApplicationName , lpCommandLine, lpProcessAttributes, lpThreadAttributes, 
+        bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+
+}
 static int WINAPI HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption,
                                     UINT uType) {
 
+    OutputDebugStringA("Hooked messageBoxA");                                    
     SendToServer(lpText);
     return TrueMessageBoxA(hWnd, lpText, lpCaption, uType);
 }
@@ -36,6 +69,7 @@ __declspec(dllexport) BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason,
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
         DetourAttach(&(PVOID &)TrueMessageBoxA, HookedMessageBoxA);
+        DetourAttach(&(PVOID &)TrueCreateProcessA, HookedCreateProcessA);
         DetourTransactionCommit();
     } else if (reason == DLL_PROCESS_DETACH) {
 
@@ -47,6 +81,7 @@ __declspec(dllexport) BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason,
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
         DetourDetach(&(PVOID &)TrueMessageBoxA, HookedMessageBoxA);
+        DetourDetach(&(PVOID &)TrueCreateProcessA, HookedCreateProcessA);
         DetourTransactionCommit();
     }
     return TRUE;
