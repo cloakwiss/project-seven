@@ -4,14 +4,15 @@ param(
 	[string]$Config,
 
 	[Alias("t")]
-	[ValidateSet("samples", "core", "detour", "hookdll", "all")]
+	[ValidateSet("core", "detour", "hookdll", "all", "sample_targets")]
 	[string[]]$Targets
 )
+
+
 
 Invoke-Expression .\scripts\setup.ps1
 
 
-# --- Defaults ---
 if (-not $Config)
 { $Config = "debug" 
 }
@@ -20,14 +21,14 @@ if (-not $Targets)
 }
 
 $CFlags = @("-D_AMD64_", "-EHsc")
-
 Invoke-Expression '.\scripts\clear.ps1 -c $Config -t $Targets'
 
-# --- Utility Functions ---
+
 function Log($msg)
 {
 	Write-Host "[*] $msg"
 }
+
 
 function ErrorExit($msg)
 {
@@ -35,7 +36,8 @@ function ErrorExit($msg)
 	exit 1
 }
 
-# --- Build Functions ---
+
+
 function Build-Detour
 {
 	$source_detour_exe_path = "./Detours/bin.x64"
@@ -69,6 +71,8 @@ function Build-Detour
 
 	Log "($Config) Build Complete for Detour"
 }
+
+
 
 function Build-HookDLL
 {
@@ -104,6 +108,7 @@ function Build-HookDLL
 	Pop-Location
 }
 
+
 function Build-Core
 {
 	Log "Building Core ($Config)..."
@@ -135,30 +140,31 @@ function Build-Core
 	Pop-Location
 }
 
-function Build-Samples
+
+
+function Build-SampleTargets
 {
-	Log "Building Samples ($Config)..."
-	# $hookdll_path = "./builds/" + $Config + "/hookdll/hook.dll"
-	# if (Test-Path $hookdll_path)
-	# {
-	# } else
-	# {
-	# 	ErrorExit "Hook dll not found, can't compile"
-	# }
+	$source_dir = "./sample_targets"
+	$output_dir = "./builds/debug/sample_targets" 
 
-	$rel_path_prefix = "../../../"
+	New-Item -ItemType Directory -Path $output_dir -Force
 
-	$file_path = "/sample_targets/message_box.cpp"
+	$cpp_files = Get-ChildItem -Path $source_dir -Filter "*.cpp"
 
-	$compile_path = "builds/" + $Config + "/samples"
-	New-Item -ItemType Directory -Path $compile_path -Force
+	foreach ($file in $cpp_files)
+	{
+		$source_path = $file.FullName
 
-	$file_path = $rel_path_prefix + $file_path
-
-	Push-Location $compile_path
-	cl $CFlags -Zi $file_path
-	Pop-Location
+		cl -Zi  $source_path
+		if ($LASTEXITCODE -ne 0)
+		{
+			Write-Error "Compilation failed for $source_path"
+			exit 1
+		}
+	}
 }
+
+
 
 function Build-All
 {
@@ -166,16 +172,15 @@ function Build-All
 	Build-Detour
 	Build-HookDLL
 	Build-Core
+	Build-SampleTargets
 }
 
-# --- Dispatcher ---
+
+
 foreach ($target in $Targets)
 {
 	switch ($target.ToLower())
 	{
-		"samples"
-		{ Build-Samples
-		}
 		"core"
 		{ Build-Core 
 		}
@@ -187,6 +192,9 @@ foreach ($target in $Targets)
 		}
 		"all"
 		{ Build-All 
+		}
+		"sample_targets"
+		{ Build-SampleTargets 
 		}
 		default
 		{ ErrorExit "Unknown target: $target" 

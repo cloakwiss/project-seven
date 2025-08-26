@@ -1,5 +1,8 @@
+#pragma comment(lib, "../detour_lib/detours.lib")
+
 #include <iostream>
 #include <windows.h>
+#include <winnt.h>
 
 #include "../builds/debug/detour_include/detours.h"
 

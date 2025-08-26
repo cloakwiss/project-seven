@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <iostream>
 #include <cstdio>
-
+#include <iostream>
 #include "../builds/debug/detour_include/detours.h"
 
 static HANDLE g_hPipe = INVALID_HANDLE_VALUE;
@@ -14,6 +14,8 @@ SendToServer(const char *text) {
                              0, NULL);
 
         if (g_hPipe == INVALID_HANDLE_VALUE) {
+            DWORD dwError = GetLastError();
+            std::cerr << "Failed to open pipe. Error code: " << dwError << std::endl;
             return;
         }
     }
@@ -26,9 +28,30 @@ static int(WINAPI *TrueMessageBoxA)(HWND, LPCSTR, LPCSTR, UINT) = MessageBoxA;
 static int WINAPI
 HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 
-    std::cout << "hello bitchesl\n";
+
+    OutputDebugStringA("Hooked messageBoxA");
     SendToServer(lpText);
     return TrueMessageBoxA(hWnd, lpText, lpCaption, uType);
+}
+
+static BOOL(WINAPI *TrueCreateProcessA)(
+    LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes,
+    LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
+    LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo,
+    LPPROCESS_INFORMATION lpProcessInformation) = CreateProcessA;
+
+static BOOL WINAPI
+HookedCreateProcessA(LPCSTR lpApplicationName, LPSTR lpCommandLine,
+                     LPSECURITY_ATTRIBUTES lpProcessAttributes,
+                     LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles,
+                     DWORD dwCreationFlags, LPVOID lpEnvironment, LPCSTR lpCurrentDirectory,
+                     LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation) {
+    OutputDebugStringA("hooked CreateProcessA");
+    SendToServer("Hooked CreateProcessA");
+
+    return TrueCreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes,
+                              lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment,
+                              lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 }
 
 __declspec(dllexport) BOOL APIENTRY
@@ -39,6 +62,7 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
         DetourAttach(&(PVOID &)TrueMessageBoxA, &(PVOID &)HookedMessageBoxA);
+        DetourAttach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
         DetourTransactionCommit();
 
     } else if (reason == DLL_PROCESS_DETACH) {
@@ -51,6 +75,7 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
         DetourDetach(&(PVOID &)TrueMessageBoxA, &(PVOID &)HookedMessageBoxA);
+        DetourDetach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
         DetourTransactionCommit();
     }
 
