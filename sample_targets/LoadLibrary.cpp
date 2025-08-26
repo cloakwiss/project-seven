@@ -1,7 +1,8 @@
 #include <windows.h>
 #include <iostream>
 
-int main() {
+int
+main() {
     HMODULE hMod = LoadLibraryA("User32.dll");
     if (hMod) {
         std::cout << "User32.dll loaded successfully at address: " << hMod << std::endl;

@@ -1,7 +1,8 @@
 #include <windows.h>
 #include <iostream>
 
-int main() {
+int
+main() {
     char buffer[128] = {0};
     DWORD oldProtect;
 

@@ -1,7 +1,8 @@
 #include <windows.h>
 #include <iostream>
 
-int main() {
+int
+main() {
     SIZE_T memSize = 1024;
     LPVOID mem = VirtualAlloc(NULL, memSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (mem) {

@@ -1,8 +1,11 @@
+#pragma comment(lib, "user32.lib")
+
 #include <windows.h>
 #include <iostream>
 #include <cstdio>
 #include <iostream>
-#include "../builds/debug/detour_include/detours.h"
+
+#include "../builds/debug/detours/detours.h"
 
 static HANDLE g_hPipe = INVALID_HANDLE_VALUE;
 
@@ -34,6 +37,8 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
     return TrueMessageBoxA(hWnd, lpText, lpCaption, uType);
 }
 
+
+
 static BOOL(WINAPI *TrueCreateProcessA)(
     LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes,
     LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
@@ -53,6 +58,9 @@ HookedCreateProcessA(LPCSTR lpApplicationName, LPSTR lpCommandLine,
                               lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment,
                               lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 }
+
+
+
 
 __declspec(dllexport) BOOL APIENTRY
 DllMain(HMODULE hModule, DWORD reason, LPVOID _) {

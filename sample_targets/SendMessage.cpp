@@ -1,7 +1,10 @@
+#pragma comment(lib, "user32.lib")
+
 #include <windows.h>
 #include <iostream>
 
-int main() {
+int
+main() {
     HWND hwnd = FindWindowA(NULL, "Untitled - Notepad"); // Change title as needed
     if (hwnd == NULL) {
         std::cout << "Window not found." << std::endl;

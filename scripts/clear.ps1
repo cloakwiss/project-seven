@@ -4,14 +4,14 @@ param(
 	[string]$Config,
 
 	[Alias("t")]
-	[ValidateSet("core", "detour", "hookdll", "all")]
+	[ValidateSet("core", "detours", "hookdll", "all", "samples")]
 	[string[]]$Targets
 )
 
-# --- Defaults ---
 if (-not $Config)
 { $Config = "debug" 
 }
+
 if (-not $Targets)
 { $Targets = @("core") 
 }
@@ -28,47 +28,62 @@ function ErrorExit($msg)
 	exit 1
 }
 
-# --- Clear Functions ---
-function Clear-Detour
-{
-	$dest_detour_exe_loc = "./builds/" + $Config + "/detour_exe"
-	$dest_detour_include_loc= "./builds/" + $Config + "/detour_include"
-	$dest_detour_lib_loc= "./builds/" + $Config + "/detour_lib"
 
-	Log "Clearing Detour ($Config)..."
+function Clear-Detours
+{
+	$dest_detours_loc = "./builds/" + $Config + "/detours"
+
+	Log "Clearing Detours ($Config)..."
 
 	Push-Location "Detours"
 	nmake realclean
 	Pop-Location
 
-	Remove-Item "$dest_detour_exe_loc\*" -Recurse -Force -ErrorAction SilentlyContinue
-	Remove-Item "$dest_detour_include_loc\*" -Recurse -Force -ErrorAction SilentlyContinue
-	Remove-Item "$dest_detour_lib_loc\*" -Recurse -Force -ErrorAction SilentlyContinue
+	Remove-Item "$dest_detours_loc\*" -Recurse -Force -ErrorAction SilentlyContinue
 }
+
 
 function Clear-HookDLL
 {
 	Log "Clearing HookDLL ($Config)..."
 
-	$compile_loc = "builds/" + $Config + "/hookdll"
+	$compile_loc = "builds/" + $Config
 
-	Remove-Item "$compile_loc\*" -Recurse -Force -ErrorAction SilentlyContinue
+	Remove-Item "$compile_loc\hook*" -Recurse -Force -ErrorAction SilentlyContinue
 }
+
+
 
 function Clear-Core
 {
 	Log "Clearing Core ($Config)..."
-	$compile_loc = "builds/" + $Config + "/core"
+	$compile_loc = "builds/" + $Config
+
+	Remove-Item "$compile_loc\main*" -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+
+
+function Clear-Samples 
+{
+
+	Log "Clearing Core ($Config)..."
+	$compile_loc = "./builds/debug/samples"
 
 	Remove-Item "$compile_loc\*" -Recurse -Force -ErrorAction SilentlyContinue
 }
+
+
 
 function Clear-All
 {
 	Clear-Core
 	Clear-HookDLL
-	Clear-Detour
+	Clear-Detours
+	Clear-Samples
 }
+
+
 
 # --- Dispatcher ---
 foreach ($target in $Targets)
@@ -78,14 +93,17 @@ foreach ($target in $Targets)
 		"core"
 		{ Clear-Core 
 		}
-		"detour"
-		{ Clear-Detour 
+		"detours"
+		{ Clear-Detours
 		}
 		"hookdll"
 		{ Clear-HookDLL 
 		}
 		"all"
 		{ Clear-All 
+		}
+		"samples"
+		{ Clear-Samples
 		}
 		default
 		{ ErrorExit "Unknown target: $target" 

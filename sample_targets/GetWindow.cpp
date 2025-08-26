@@ -1,9 +1,13 @@
+#pragma comment(lib, "user32.lib")
+
 #include <windows.h>
 #include <iostream>
 
-int main() {
+int
+main() {
     HWND desktop = GetDesktopWindow();
     HWND firstWindow = GetWindow(desktop, GW_CHILD);
+
     if (firstWindow) {
         std::cout << "First child window handle: " << firstWindow << std::endl;
 
@@ -16,5 +20,6 @@ int main() {
     } else {
         std::cout << "No child windows found." << std::endl;
     }
+
     return 0;
 }

@@ -1,10 +1,10 @@
-#pragma comment(lib, "../detour_lib/detours.lib")
+#pragma comment(lib, "./detours/detours.lib")
 
 #include <iostream>
 #include <windows.h>
 #include <winnt.h>
 
-#include "../builds/debug/detour_include/detours.h"
+#include "../builds/debug/detours/detours.h"
 
 int
 main(int argc, char *argv[]) {
