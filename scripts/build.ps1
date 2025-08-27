@@ -147,6 +147,7 @@ function Build-Samples
 	$cpp_files = Get-ChildItem -Path $source_dir -Filter "*.cpp"
 
 	Push-Location $output_dir
+
 	foreach ($file in $cpp_files)
 	{
 		$source_path = $file.FullName
@@ -159,6 +160,7 @@ function Build-Samples
 			exit 1
 		}
 	}
+
 	Pop-Location
 }
 

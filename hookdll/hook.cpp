@@ -34,7 +34,7 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 
     OutputDebugStringA("Hooked messageBoxA");
     SendToServer(lpText);
-    return TrueMessageBoxA(hWnd, lpText, lpCaption, uType);
+    return TrueMessageBoxA(hWnd, "Heheh", lpCaption, uType);
 }
 
 
@@ -61,9 +61,9 @@ HookedCreateProcessA(LPCSTR lpApplicationName, LPSTR lpCommandLine,
 
 
 
-
 __declspec(dllexport) BOOL APIENTRY
 DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
+
     if (reason == DLL_PROCESS_ATTACH) {
 
         DetourRestoreAfterWith();
