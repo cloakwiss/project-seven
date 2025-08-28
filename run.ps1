@@ -18,7 +18,8 @@ Usage: run.ps1 [options]
 Options:
   -hd          Build HookDLL component
   -t <name>    Specify sample target executable name under ./builds/debug/sample_targets/
-  -h,          Display this help message
+  -core        Build Core component
+  -h,          Display this help message   
 
 Examples:
   .\run.ps1                     # Builds core
@@ -26,9 +27,6 @@ Examples:
   .\run.ps1 -t target.exe       # Run target.exe without building
 "@
 }
-
-Write-Host "Building Core..."
-./scripts/build.ps1 -c debug -t core
 
 if ($Help)
 {
@@ -61,6 +59,8 @@ if ($BuildHookDLL)
 	./scripts/build.ps1 -c debug -t hookdll
 }
 
+Write-Host "Building Core..."
+./scripts/build.ps1 -c debug -t core
 
 if ($PSBoundParameters.ContainsKey('SampleTargetName'))
 {

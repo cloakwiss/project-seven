@@ -4,7 +4,7 @@
 #include <windows.h>
 #include <winnt.h>
 
-#include "../builds/debug/detours/detours.h"
+#include "../builds/debug/detour_include/detours.h"
 
 int
 main(int argc, char *argv[]) {
