@@ -9,6 +9,8 @@ param(
 	[switch]$Help
 )
 
+Write-Host "Building Core..."
+./scripts/build.ps1 -c debug -t core
 
 function Show-Help
 {
@@ -24,9 +26,10 @@ Options:
 Examples:
   .\run.ps1                     # Builds core
   .\run.ps1 -hd -t target.exe   # Build Core and HookDLL and run target.exe
-  .\run.ps1 -t target.exe       # Run target.exe without building
+  .\run.ps1 -t target.exe       # Build Core and Run target.exe
 "@
 }
+
 
 if ($Help)
 {
@@ -34,7 +37,7 @@ if ($Help)
 	exit 0
 }
 
-if (-not ($BuildCore -or $BuildHookDLL -or $PSBoundParameters.ContainsKey('SampleTargetName')))
+if (-not ($BuildHookDLL -or $PSBoundParameters.ContainsKey('SampleTargetName')))
 {
 	Write-Host "Available Samples are: "
 	Get-ChildItem "./builds/debug/samples/" -File |
@@ -68,18 +71,26 @@ if ($PSBoundParameters.ContainsKey('SampleTargetName'))
 	$hookdll_path = "./builds/debug/hook.dll"
 	$sample_target_path = "./builds/debug/samples/$SampleTargetName.exe"
 
-	if (Test-Path -IsValid $sample_target_path)
+	if (Test-Path -IsValid $hookdll_path)
 	{
-		Write-Host "Running with target executable: $sample_target_path"
-		& $core_path $sample_target_path $hookdll_path
-	} else
-	{
-		Write-Host "SampleTargetName specified is not available:"
-		Write-Host "Available Samples are: "
-		Get-ChildItem "./builds/debug/samples/" -File |
-			Select-Object -ExpandProperty BaseName |
-			Sort-Object -Unique |
-			ForEach-Object { Write-Host " - $_" }
+		if (Test-Path -IsValid $sample_target_path)
+		{
+			$sample_target_path = "-e:" + $sample_target_path
+			$hookdll_path = "-d:" + $hookdll_path
+
+			Write-Host "Running with target executable: $sample_target_path"
+			& $core_path $sample_target_path $hookdll_path
+		} else
+		{
+			Write-Host "SampleTargetName specified is not available:"
+			Write-Host "Available Samples are: "
+			Get-ChildItem "./builds/debug/samples/" -File |
+				Select-Object -ExpandProperty BaseName |
+				Sort-Object -Unique |
+				ForEach-Object { Write-Host " - $_" }
+		}
+	} else {
+		Write-Host "Hook dll is not available"
 	}
 } else
 {

@@ -8,4 +8,5 @@
 *.ilk
 *.pdb
 *.db
+tmp/
 matched.txt

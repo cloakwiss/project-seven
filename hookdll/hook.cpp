@@ -177,6 +177,7 @@ static HANDLE HookedCreateRemoteThread(
 
 __declspec(dllexport) BOOL APIENTRY
 DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
+
     if (reason == DLL_PROCESS_ATTACH) {
 
         DetourRestoreAfterWith();
