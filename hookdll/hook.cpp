@@ -52,11 +52,7 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
     int result = TrueMessageBoxA(hWnd, lpText, lpCaption, uType);
 
     ossRet << " MessageBoxA returned : \n";
-    ossRet << " hWnd: "<< std::hex << (hWnd ? reinterpret_cast<uintptr_t>(hWnd) : static_cast<uintptr_t>(0)) << std::endl;
-    ossRet << " lpText: " << (lpText ? lpText: "NULL") << "\n";
-    ossRet << " lpCaption: " << (lpCaption ? lpCaption: "NULL") << "\n";
-    ossRet << " uType: " << uType << "\n";
-    ossRet << " Returned: " << result << std::endl;
+    ossRet << " returned: " << result << std::endl;
 
     SendToServer(ossRet.str().c_str());
     ossRet.str(""); ossRet.clear(); // flush ossRet
@@ -94,10 +90,11 @@ static BOOL WINAPI HookedCreateProcessA(
         dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 
     std::ostringstream ossRet;
-    ossRet << "[HOOK] CreateProcessA returned: " << result;
-    if (lpProcessInformation) {
-        ossRet << " (PID: " << lpProcessInformation->dwProcessId << ")";
-    }
+    ossRet << "CreateProcessA returned: \n";
+    ossRet << "  lpCommandLine: " << (lpCommandLine ? lpCommandLine : "NULL") << "\n";
+    ossRet << " ( PID: " << (lpProcessInformation ? lpProcessInformation->dwProcessId : 0 ) << ")\n" ; 
+    ossRet << " returned: " << result << std::endl;
+
     SendToServer(ossRet.str().c_str());
     ossRet.str(""); ossRet.clear(); 
 
@@ -119,7 +116,7 @@ static HWND HookedGetWindow( HWND hWnd, UINT uCmd)
     std::ostringstream ossRet;
 
     ossRet <<  " GetWindow Returned \n";
-    ossRet << " hWnd: " << std::hex << reinterpret_cast<uintptr_t>(hWnd) << std::endl << " uCmd: " << uCmd << std::endl << " Returned: " << reinterpret_cast<uintptr_t> (result) << std::endl;
+    ossRet << " returned: " << std::hex << reinterpret_cast<uintptr_t> (result) << std::endl;
     SendToServer(ossRet.str().c_str());
     ossRet.str(""); ossRet.clear(); // flush
 
@@ -159,13 +156,6 @@ static HANDLE HookedCreateRemoteThread(
     
     std::ostringstream ossRet;
 
-    ossRet << " CreateRemoteThread returned \n";
-    ossRet << " hProcess: " << hProcess << std::endl ;
-    ossRet << " lpThreadAttributes: " << lpThreadAttributes << std::endl ;
-    ossRet << " dwStackSize: " << dwStackSize << std::endl ;
-    ossRet << " lpStartAddress: " << lpStartAddress << std::endl;
-    ossRet << " lpParameter: " << lpParameter << std::endl;
-    ossRet << " dwCreationFlags: " << dwCreationFlags << std::endl;
     ossRet << " lpThreadId: " << lpThreadId << std::endl;
     ossRet << " returned: " << std::hex << result << std::endl;
 
@@ -174,6 +164,166 @@ static HANDLE HookedCreateRemoteThread(
 
     return result;
 }
+
+// pointer and Hook to LoadLibraryA
+static HMODULE (WINAPI *TrueLoadLibraryA)(LPCSTR lpLibFileName) = LoadLibraryA;
+
+static HMODULE WINAPI HookedLoadLibraryA(LPCSTR lpLibFileName)
+{
+    std::ostringstream oss;
+    oss << "[HOOK] LoadLibraryA called\n";
+    oss << " lpLibFileName: " << (lpLibFileName ? lpLibFileName : "NULL") << std::endl;
+    SendToServer(oss.str().c_str());
+    oss.str(""); oss.clear(); // flush ostringstream
+
+    HMODULE result = TrueLoadLibraryA(lpLibFileName);
+
+    std::ostringstream ossRet;
+    ossRet << " LoadLibraryA Returned\n";
+    ossRet << " returned: 0x" << std::hex << reinterpret_cast<uintptr_t>(result) << std::endl;
+    SendToServer(ossRet.str().c_str());
+    ossRet.str(""); ossRet.clear(); // flush
+
+    return result;
+}
+
+// pointer and Hook to VirtualAlloc
+static LPVOID (WINAPI *TrueVirtualAlloc)(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) = VirtualAlloc;
+
+static LPVOID WINAPI HookedVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
+{
+    std::ostringstream oss;
+    oss << "[HOOK] VirtualAlloc called\n";
+    oss << " lpAddress: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpAddress) << std::dec << std::endl;
+    oss << " dwSize: " << dwSize << std::endl;
+    oss << " flAllocationType: 0x" << std::hex << flAllocationType << std::dec << std::endl;
+    oss << " flProtect: 0x" << std::hex << flProtect << std::dec << std::endl;
+    SendToServer(oss.str().c_str());
+    oss.str(""); oss.clear(); // flush ostringstream
+
+    LPVOID result = TrueVirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
+
+    std::ostringstream ossRet;
+    ossRet << " VirtualAlloc Returned\n";
+    ossRet << " returned: 0x" << std::hex << reinterpret_cast<uintptr_t>(result) << std::dec << std::endl;
+    SendToServer(ossRet.str().c_str());
+    ossRet.str(""); ossRet.clear(); // flush
+
+    return result;
+}
+
+// Pointer and hook for VirtualProtect
+static BOOL (WINAPI *TrueVirtualProtect)(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect) = VirtualProtect;
+
+static BOOL WINAPI HookedVirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect)
+{
+    std::ostringstream oss;
+    oss << "[HOOK] VirtualProtect called\n";
+    oss << " lpAddress: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpAddress) << std::dec << std::endl;
+    oss << " dwSize: " << dwSize << std::endl;
+    oss << " flNewProtect: 0x" << std::hex << flNewProtect << std::dec << std::endl;
+    oss << " lpflOldProtect: " << (lpflOldProtect ? "valid pointer" : "NULL") << std::endl;
+    SendToServer(oss.str().c_str());
+    oss.str(""); oss.clear();
+
+    BOOL result = TrueVirtualProtect(lpAddress, dwSize, flNewProtect, lpflOldProtect);
+
+    std::ostringstream ossRet;
+    ossRet << " VirtualProtect returned \n";
+    ossRet << " returned: " << (result ? "TRUE" : "FALSE") << std::endl;
+    ossRet << " oldProtection: " << std::hex << (lpflOldProtect && result ? *lpflOldProtect : 0) << std::endl;
+
+    SendToServer(ossRet.str().c_str());
+    ossRet.str(""); ossRet.clear();
+
+    return result;
+}
+
+// Pointer and hook for Sleep
+static VOID (WINAPI *TrueSleep)(DWORD dwMilliseconds) = Sleep;
+
+static VOID WINAPI HookedSleep(DWORD dwMilliseconds)
+{
+    std::ostringstream oss;
+    oss << "[HOOK] Sleep called: " << dwMilliseconds << " ms\n";
+    SendToServer(oss.str().c_str());
+    oss.str(""); oss.clear();
+
+    // Call original Sleep function
+    TrueSleep(dwMilliseconds);
+
+    std::ostringstream ossRet;
+    ossRet << "Sleep returned\n";
+    SendToServer(ossRet.str().c_str());
+    ossRet.str(""); ossRet.clear();
+}
+
+// Pointer and hook for SendMessage
+static LRESULT (WINAPI *TrueSendMessage)(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) = SendMessage;
+
+static LRESULT WINAPI HookedSendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+    std::ostringstream oss;
+    oss << "[HOOK] SendMessage called\n";
+    oss << " hWnd: " << std::hex << reinterpret_cast<uintptr_t>(hWnd) << std::dec << std::endl;
+    oss << " Msg: " << std::hex << Msg << std::dec << std::endl;
+    oss << " wParam: " << std::hex << wParam << std::dec << std::endl;
+    oss << " lParam: " << std::hex << lParam << std::dec << std::endl;
+    SendToServer(oss.str().c_str());
+    oss.str(""); oss.clear();
+
+    // Call original SendMessage
+    LRESULT result = TrueSendMessage(hWnd, Msg, wParam, lParam);
+
+    std::ostringstream ossRet;
+    ossRet << "SendMessage returned\n";
+    ossRet << " result: " << std::hex << result << std::dec << std::endl;
+    SendToServer(ossRet.str().c_str());
+    ossRet.str(""); ossRet.clear();
+
+    return result;
+}
+
+// Pointer and Hook for WriteProcessMemory
+
+static BOOL (WINAPI *TrueWriteProcessMemory)(
+    HANDLE hProcess,
+    LPVOID lpBaseAddress,
+    LPCVOID lpBuffer,
+    SIZE_T nSize,
+    SIZE_T *lpNumberOfBytesWritten
+) = WriteProcessMemory;
+
+static BOOL WINAPI HookedWriteProcessMemory(
+    HANDLE hProcess,
+    LPVOID lpBaseAddress,
+    LPCVOID lpBuffer,
+    SIZE_T nSize,
+    SIZE_T *lpNumberOfBytesWritten
+)
+{
+    std::ostringstream oss;
+    oss << "[HOOK] WriteProcessMemory called\n";
+    oss << " hProcess: 0x" << std::hex << reinterpret_cast<uintptr_t>(hProcess) << std::dec << "\n";
+    oss << " lpBaseAddress: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpBaseAddress) << std::dec << "\n";
+    oss << " lpBuffer: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpBuffer) << std::dec << "\n";
+    oss << " nSize: " << nSize << "\n";
+    
+    SendToServer(oss.str().c_str());
+    oss.str(""); oss.clear();
+
+    BOOL result = TrueWriteProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, lpNumberOfBytesWritten);
+
+    std::ostringstream ossRet; 
+    ossRet << " lpNumberOfBytesWritten: " << *lpNumberOfBytesWritten << "\n";
+    ossRet << " Result: " << result << "\n";
+
+    SendToServer(oss.str().c_str());
+
+    return result;
+}
+
+
 
 __declspec(dllexport) BOOL APIENTRY
 DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
@@ -191,6 +341,18 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         OutputDebugStringA("attached GetWindow");
         DetourAttach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
         OutputDebugStringA("attached CreateRemoteThread");
+        DetourAttach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
+        OutputDebugStringA("attached LoadLibraryA");
+        DetourAttach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
+        OutputDebugStringA("attached VirtualAlloc");
+        //DetourAttach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
+        OutputDebugStringA("attached VirtualProtect");
+        DetourAttach(&(PVOID&)TrueSleep, &(PVOID&)HookedSleep);
+        OutputDebugStringA("attached Sleep");
+        DetourAttach(&(PVOID&)TrueSendMessage, &(PVOID&)HookedSendMessage);
+        OutputDebugStringA("attached SendMessage");
+        DetourAttach(&(PVOID&)TrueWriteProcessMemory, &(PVOID&)HookedWriteProcessMemory);
+        OutputDebugStringA("attached WriteProcessMemory");
 
         DetourTransactionCommit();
         OutputDebugStringA("commited hook");
@@ -208,6 +370,12 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         DetourDetach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
         DetourDetach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
         DetourDetach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
+        DetourDetach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
+        DetourDetach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
+        //DetourDetach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
+        DetourDetach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
+        DetourDetach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
+        DetourDetach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);
 
         DetourTransactionCommit();
     }

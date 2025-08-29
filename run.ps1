@@ -20,7 +20,6 @@ Usage: run.ps1 [options]
 Options:
   -hd          Build HookDLL component
   -t <name>    Specify sample target executable name under ./builds/debug/sample_targets/
-  -core        Build Core component
   -h,          Display this help message   
 
 Examples:
