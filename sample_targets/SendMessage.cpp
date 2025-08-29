@@ -3,11 +3,12 @@
 #include <windows.h>
 #include <iostream>
 
-int
-main() {
-    HWND hwnd = FindWindowA(NULL, "Untitled - Notepad"); // Change title as needed
+int main() {
+    // Example hard-coded HWND value (just for illustration)
+    HWND hwnd = (HWND)0x00123456;  
+
     if (hwnd == NULL) {
-        std::cout << "Window not found." << std::endl;
+        std::cout << "Invalid window handle." << std::endl;
         return 1;
     }
 
