@@ -61,9 +61,6 @@ if ($BuildHookDLL)
 	./scripts/build.ps1 -c debug -t hookdll
 }
 
-Write-Host "Building Core..."
-./scripts/build.ps1 -c debug -t core
-
 if ($PSBoundParameters.ContainsKey('SampleTargetName'))
 {
 	$core_path = "./builds/debug/main.exe"

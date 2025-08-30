@@ -3,9 +3,10 @@
 #include <windows.h>
 #include <iostream>
 
-int main() {
+int
+main() {
     // Example hard-coded HWND value (just for illustration)
-    HWND hwnd = (HWND)0x00123456;  
+    HWND hwnd = (HWND)0x00123456;
 
     if (hwnd == NULL) {
         std::cout << "Invalid window handle." << std::endl;
