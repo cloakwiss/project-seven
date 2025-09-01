@@ -9,18 +9,39 @@
 
 static HANDLE GlobalPipeHandle = INVALID_HANDLE_VALUE;
 static thread_local unsigned long GlobalCallDepth = 0;
+static thread_local std::ostringstream logs;
+static thread_local bool IsLoggingOn = false;
+
+// ---------------------------------------------------------------------------------------------- //
+// THIS STUFF IS VERY IMPORTANT DO NOT FUCKING MESS WITH THIS AND JUST USE IT ------------------- //
+// ---------------------------------------------------------------------------------------------- //
+// The reason for keeping logs global is that we do not want to reallocate it again and again. -- //
+// It will then not reallocate memmory for the log all the time, we just clear it. -------------- //
+// ---------------------------------------------------------------------------------------------- //
 
 #define SEND_BEFORE_CALL(CODE)                                                                     \
-    if (GlobalCallDepth == 0) {                                                                    \
-        CODE                                                                                       \
+    if (GlobalCallDepth == 0 && IsLoggingOn) {                                                     \
+        IsLoggingOn = false;                                                                       \
+        CODE;                                                                                      \
+        SendToServer(logs.str().c_str());                                                          \
+        logs.str("");                                                                              \
+        logs.clear();                                                                              \
+        IsLoggingOn = true;                                                                        \
     }                                                                                              \
     GlobalCallDepth += 1;
 
 #define SEND_AFTER_CALL(CODE)                                                                      \
     GlobalCallDepth -= 1;                                                                          \
-    if (GlobalCallDepth == 0) {                                                                    \
-        CODE                                                                                       \
+    if (GlobalCallDepth == 0 && IsLoggingOn) {                                                     \
+        IsLoggingOn = false;                                                                       \
+        CODE;                                                                                      \
+        SendToServer(logs.str().c_str());                                                          \
+        logs.str("");                                                                              \
+        logs.clear();                                                                              \
+        IsLoggingOn = true;                                                                        \
     }
+// ---------------------------------------------------------------------------------------------- //
+// ---------------------------------------------------------------------------------------------- //
 
 
 
@@ -52,34 +73,20 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
     OutputDebugStringA("Hooked messageBoxA");
 
     SEND_BEFORE_CALL({
-        std::ostringstream oss;
+        logs << "[Hook] MessageBoxA. \n";
 
-        oss << "[Hook] MessageBoxA. \n";
-
-        oss << " hWnd: " << std::hex
-            << (hWnd ? reinterpret_cast<uintptr_t>(hWnd) : static_cast<uintptr_t>(0)) << std::endl;
-        oss << " lpText: " << (lpText ? lpText : "NULL") << "\n";
-        oss << " lpCaption: " << (lpCaption ? lpCaption : "NULL") << "\n";
-        oss << " uType: " << uType << "\n";
-
-        SendToServer(oss.str().c_str());
-
-        oss.str("");
-        oss.str().clear();
+        logs << " hWnd: " << std::hex
+             << (hWnd ? reinterpret_cast<uintptr_t>(hWnd) : static_cast<uintptr_t>(0)) << std::endl;
+        logs << " lpText: " << (lpText ? lpText : "NULL") << "\n";
+        logs << " lpCaption: " << (lpCaption ? lpCaption : "NULL") << "\n";
+        logs << " uType: " << uType << "\n";
     })
 
     int result = TrueMessageBoxA(hWnd, lpText, lpCaption, uType);
 
     SEND_AFTER_CALL({
-        std::ostringstream ossRet;
-
-        ossRet << " MessageBoxA returned : \n";
-        ossRet << " returned: " << result << std::endl;
-
-        SendToServer(ossRet.str().c_str());
-
-        ossRet.str("");
-        ossRet.clear();
+        logs << " MessageBoxA returned : \n";
+        logs << " returned: " << result << std::endl;
     })
 
     return result;
@@ -101,19 +108,13 @@ HookedCreateProcessA(LPCSTR lpApplicationName, LPSTR lpCommandLine,
                      LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation) {
 
     SEND_BEFORE_CALL({
-        std::ostringstream oss;
-        oss << "[HOOK] CreateProcessA called.\n";
-        oss << "  lpApplicationName: " << (lpApplicationName ? lpApplicationName : "NULL") << "\n";
-        oss << "  lpCommandLine: " << (lpCommandLine ? lpCommandLine : "NULL") << "\n";
-        oss << "  bInheritHandles: " << bInheritHandles << "\n";
-        oss << "  dwCreationFlags: 0x" << std::hex << dwCreationFlags << std::dec << "\n";
-        oss << "  lpCurrentDirectory: " << (lpCurrentDirectory ? lpCurrentDirectory : "NULL")
-            << "\n";
-
-        SendToServer(oss.str().c_str());
-
-        oss.str("");
-        oss.clear();
+        logs << "[HOOK] CreateProcessA called.\n";
+        logs << "  lpApplicationName: " << (lpApplicationName ? lpApplicationName : "NULL") << "\n";
+        logs << "  lpCommandLine: " << (lpCommandLine ? lpCommandLine : "NULL") << "\n";
+        logs << "  bInheritHandles: " << bInheritHandles << "\n";
+        logs << "  dwCreationFlags: 0x" << std::hex << dwCreationFlags << std::dec << "\n";
+        logs << "  lpCurrentDirectory: " << (lpCurrentDirectory ? lpCurrentDirectory : "NULL")
+             << "\n";
     })
 
     BOOL result = TrueCreateProcessA(
@@ -121,17 +122,11 @@ HookedCreateProcessA(LPCSTR lpApplicationName, LPSTR lpCommandLine,
         dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 
     SEND_AFTER_CALL({
-        std::ostringstream ossRet;
-        ossRet << "CreateProcessA returned: \n";
-        ossRet << "  lpCommandLine: " << (lpCommandLine ? lpCommandLine : "NULL") << "\n";
-        ossRet << " ( PID: " << (lpProcessInformation ? lpProcessInformation->dwProcessId : 0)
-               << ")\n";
-        ossRet << " returned: " << result << std::endl;
-
-        SendToServer(ossRet.str().c_str());
-
-        ossRet.str("");
-        ossRet.clear();
+        logs << "CreateProcessA returned: \n";
+        logs << "  lpCommandLine: " << (lpCommandLine ? lpCommandLine : "NULL") << "\n";
+        logs << " ( PID: " << (lpProcessInformation ? lpProcessInformation->dwProcessId : 0)
+             << ")\n";
+        logs << " returned: " << result << std::endl;
     })
 
     return result;
@@ -145,28 +140,16 @@ static HWND
 HookedGetWindow(HWND hWnd, UINT uCmd) {
 
     SEND_BEFORE_CALL({
-        std::ostringstream oss;
-        oss << "[HOOK] GetWindow called \n";
-        oss << " hWnd: " << std::hex << reinterpret_cast<uintptr_t>(hWnd) << std::endl
-            << " uCmd: " << uCmd << std::endl;
-
-        SendToServer(oss.str().c_str());
-
-        oss.str("");
-        oss.clear(); // flush ostringstream
+        logs << "[HOOK] GetWindow called \n";
+        logs << " hWnd: " << std::hex << reinterpret_cast<uintptr_t>(hWnd) << std::endl
+             << " uCmd: " << uCmd << std::endl;
     })
 
     HWND result = TrueGetWindow(hWnd, uCmd);
 
     SEND_AFTER_CALL({
-        std::ostringstream ossRet;
-        ossRet << " GetWindow Returned \n";
-        ossRet << " returned: " << std::hex << reinterpret_cast<uintptr_t>(result) << std::endl;
-
-        SendToServer(ossRet.str().c_str());
-
-        ossRet.str("");
-        ossRet.clear(); // flush
+        logs << " GetWindow Returned \n";
+        logs << " returned: " << std::hex << reinterpret_cast<uintptr_t>(result) << std::endl;
     })
 
     return result;
@@ -186,20 +169,13 @@ HookedCreateRemoteThread(HANDLE hProcess, LPSECURITY_ATTRIBUTES lpThreadAttribut
 ) {
 
     SEND_BEFORE_CALL({
-        std::ostringstream oss;
-
-        oss << " [HOOK] CreateRemoteThread called \n";
-        oss << " hProcess: " << hProcess << std::endl;
-        oss << " lpThreadAttributes: " << lpThreadAttributes << std::endl;
-        oss << " dwStackSize: " << dwStackSize << std::endl;
-        oss << " lpStartAddress: " << lpStartAddress << std::endl;
-        oss << " lpParameter: " << lpParameter << std::endl;
-        oss << " dwCreationFlags: " << dwCreationFlags << std::endl;
-
-        SendToServer(oss.str().c_str());
-
-        oss.str("");
-        oss.clear();
+        logs << " [HOOK] CreateRemoteThread called \n";
+        logs << " hProcess: " << hProcess << std::endl;
+        logs << " lpThreadAttributes: " << lpThreadAttributes << std::endl;
+        logs << " dwStackSize: " << dwStackSize << std::endl;
+        logs << " lpStartAddress: " << reinterpret_cast<uintptr_t>(lpStartAddress) << std::endl;
+        logs << " lpParameter: " << lpParameter << std::endl;
+        logs << " dwCreationFlags: " << dwCreationFlags << std::endl;
     })
 
     HANDLE result =
@@ -207,15 +183,8 @@ HookedCreateRemoteThread(HANDLE hProcess, LPSECURITY_ATTRIBUTES lpThreadAttribut
                                lpParameter, dwCreationFlags, lpThreadId);
 
     SEND_AFTER_CALL({
-        std::ostringstream ossRet;
-
-        ossRet << " lpThreadId: " << lpThreadId << std::endl;
-        ossRet << " returned: " << std::hex << result << std::endl;
-
-        SendToServer(ossRet.str().c_str());
-
-        ossRet.str("");
-        ossRet.clear();
+        logs << " lpThreadId: " << lpThreadId << std::endl;
+        logs << " returned: " << std::hex << result << std::endl;
     })
 
     return result;
@@ -230,27 +199,15 @@ static HMODULE WINAPI
 HookedLoadLibraryA(LPCSTR lpLibFileName) {
 
     SEND_BEFORE_CALL({
-        std::ostringstream oss;
-        oss << "[HOOK] LoadLibraryA called\n";
-        oss << " lpLibFileName: " << (lpLibFileName ? lpLibFileName : "NULL") << std::endl;
-
-        SendToServer(oss.str().c_str());
-
-        oss.str("");
-        oss.clear();
+        logs << "[HOOK] LoadLibraryA called\n";
+        logs << " lpLibFileName: " << (lpLibFileName ? lpLibFileName : "NULL") << std::endl;
     })
 
     HMODULE result = TrueLoadLibraryA(lpLibFileName);
 
     SEND_AFTER_CALL({
-        std::ostringstream ossRet;
-        ossRet << " LoadLibraryA Returned\n";
-        ossRet << " returned: 0x" << std::hex << reinterpret_cast<uintptr_t>(result) << std::endl;
-
-        SendToServer(ossRet.str().c_str());
-
-        ossRet.str("");
-        ossRet.clear();
+        logs << " LoadLibraryA Returned\n";
+        logs << " returned: 0x" << std::hex << reinterpret_cast<uintptr_t>(result) << std::endl;
     })
 
     return result;
@@ -266,32 +223,20 @@ static LPVOID WINAPI
 HookedVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) {
 
     SEND_BEFORE_CALL({
-        std::ostringstream oss;
-        oss << "[HOOK] VirtualAlloc called\n";
-        oss << " lpAddress: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpAddress) << std::dec
-            << std::endl;
-        oss << " dwSize: " << dwSize << std::endl;
-        oss << " flAllocationType: 0x" << std::hex << flAllocationType << std::dec << std::endl;
-        oss << " flProtect: 0x" << std::hex << flProtect << std::dec << std::endl;
-
-        SendToServer(oss.str().c_str());
-
-        oss.str("");
-        oss.clear();
+        logs << "[HOOK] VirtualAlloc called\n";
+        logs << " lpAddress: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpAddress) << std::dec
+             << std::endl;
+        logs << " dwSize: " << dwSize << std::endl;
+        logs << " flAllocationType: 0x" << std::hex << flAllocationType << std::dec << std::endl;
+        logs << " flProtect: 0x" << std::hex << flProtect << std::dec << std::endl;
     })
 
     LPVOID result = TrueVirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
 
     SEND_AFTER_CALL({
-        std::ostringstream ossRet;
-        ossRet << " VirtualAlloc Returned\n";
-        ossRet << " returned: 0x" << std::hex << reinterpret_cast<uintptr_t>(result) << std::dec
-               << std::endl;
-
-        SendToServer(ossRet.str().c_str());
-
-        ossRet.str("");
-        ossRet.clear();
+        logs << " VirtualAlloc Returned\n";
+        logs << " returned: 0x" << std::hex << reinterpret_cast<uintptr_t>(result) << std::dec
+             << std::endl;
     })
 
     return result;
@@ -307,33 +252,21 @@ static BOOL WINAPI
 HookedVirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect) {
 
     SEND_BEFORE_CALL({
-        std::ostringstream oss;
-        oss << "[HOOK] VirtualProtect called\n";
-        oss << " lpAddress: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpAddress) << std::dec
-            << std::endl;
-        oss << " dwSize: " << dwSize << std::endl;
-        oss << " flNewProtect: 0x" << std::hex << flNewProtect << std::dec << std::endl;
-        oss << " lpflOldProtect: " << (lpflOldProtect ? "valid pointer" : "NULL") << std::endl;
-
-        SendToServer(oss.str().c_str());
-
-        oss.str("");
-        oss.clear();
+        logs << "[HOOK] VirtualProtect called\n";
+        logs << " lpAddress: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpAddress) << std::dec
+             << std::endl;
+        logs << " dwSize: " << dwSize << std::endl;
+        logs << " flNewProtect: 0x" << std::hex << flNewProtect << std::dec << std::endl;
+        logs << " lpflOldProtect: " << (lpflOldProtect ? "valid pointer" : "NULL") << std::endl;
     })
 
     BOOL result = TrueVirtualProtect(lpAddress, dwSize, flNewProtect, lpflOldProtect);
 
     SEND_AFTER_CALL({
-        std::ostringstream ossRet;
-        ossRet << " VirtualProtect returned \n";
-        ossRet << " returned: " << (result ? "TRUE" : "FALSE") << std::endl;
-        ossRet << " oldProtection: " << std::hex << (lpflOldProtect && result ? *lpflOldProtect : 0)
-               << std::endl;
-
-        SendToServer(ossRet.str().c_str());
-
-        ossRet.str("");
-        ossRet.clear();
+        logs << " VirtualProtect returned \n";
+        logs << " returned: " << (result ? "TRUE" : "FALSE") << std::endl;
+        logs << " oldProtection: " << std::hex << (lpflOldProtect && result ? *lpflOldProtect : 0)
+             << std::endl;
     })
 
     return result;
@@ -347,27 +280,11 @@ static VOID(WINAPI *TrueSleep)(DWORD dwMilliseconds) = Sleep;
 static VOID WINAPI
 HookedSleep(DWORD dwMilliseconds) {
 
-    SEND_BEFORE_CALL({
-        std::ostringstream oss;
-        oss << "[HOOK] Sleep called: " << dwMilliseconds << " ms\n";
-
-        SendToServer(oss.str().c_str());
-
-        oss.str("");
-        oss.clear();
-    })
+    SEND_BEFORE_CALL({ logs << "[HOOK] Sleep called: " << dwMilliseconds << " ms\n"; })
 
     TrueSleep(dwMilliseconds);
 
-    SEND_AFTER_CALL({
-        std::ostringstream ossRet;
-        ossRet << "Sleep returned\n";
-
-        SendToServer(ossRet.str().c_str());
-
-        ossRet.str("");
-        ossRet.clear();
-    })
+    SEND_AFTER_CALL({ logs << "Sleep returned\n"; })
 }
 
 
@@ -380,30 +297,18 @@ static LRESULT WINAPI
 HookedSendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
 
     SEND_BEFORE_CALL({
-        std::ostringstream oss;
-        oss << "[HOOK] SendMessage called\n";
-        oss << " hWnd: " << std::hex << reinterpret_cast<uintptr_t>(hWnd) << std::dec << std::endl;
-        oss << " Msg: " << std::hex << Msg << std::dec << std::endl;
-        oss << " wParam: " << std::hex << wParam << std::dec << std::endl;
-        oss << " lParam: " << std::hex << lParam << std::dec << std::endl;
-
-        SendToServer(oss.str().c_str());
-
-        oss.str("");
-        oss.clear();
+        logs << "[HOOK] SendMessage called\n";
+        logs << " hWnd: " << std::hex << reinterpret_cast<uintptr_t>(hWnd) << std::dec << std::endl;
+        logs << " Msg: " << std::hex << Msg << std::dec << std::endl;
+        logs << " wParam: " << std::hex << wParam << std::dec << std::endl;
+        logs << " lParam: " << std::hex << lParam << std::dec << std::endl;
     })
 
     LRESULT result = TrueSendMessage(hWnd, Msg, wParam, lParam);
 
     SEND_AFTER_CALL({
-        std::ostringstream ossRet;
-        ossRet << "SendMessage returned\n";
-        ossRet << " result: " << std::hex << result << std::dec << std::endl;
-
-        SendToServer(ossRet.str().c_str());
-
-        ossRet.str("");
-        ossRet.clear();
+        logs << "SendMessage returned\n";
+        logs << " result: " << std::hex << result << std::dec << std::endl;
     })
 
     return result;
@@ -419,32 +324,22 @@ static BOOL WINAPI
 HookedWriteProcessMemory(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer, SIZE_T nSize,
                          SIZE_T *lpNumberOfBytesWritten) {
     SEND_BEFORE_CALL({
-        std::ostringstream oss;
-        oss << "[HOOK] WriteProcessMemory called\n";
-        oss << " hProcess: 0x" << std::hex << reinterpret_cast<uintptr_t>(hProcess) << std::dec
-            << "\n";
-        oss << " lpBaseAddress: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpBaseAddress)
-            << std::dec << "\n";
-        oss << " lpBuffer: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpBuffer) << std::dec
-            << "\n";
-        oss << " nSize: " << nSize << "\n";
-
-        SendToServer(oss.str().c_str());
-
-        oss.str("");
-        oss.clear();
+        logs << "[HOOK] WriteProcessMemory called\n";
+        logs << " hProcess: 0x" << std::hex << reinterpret_cast<uintptr_t>(hProcess) << std::dec
+             << "\n";
+        logs << " lpBaseAddress: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpBaseAddress)
+             << std::dec << "\n";
+        logs << " lpBuffer: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpBuffer) << std::dec
+             << "\n";
+        logs << " nSize: " << nSize << "\n";
     })
 
     BOOL result =
         TrueWriteProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, lpNumberOfBytesWritten);
 
-
     SEND_AFTER_CALL({
-        std::ostringstream ossRet;
-        ossRet << " lpNumberOfBytesWritten: " << *lpNumberOfBytesWritten << "\n";
-        ossRet << " Result: " << result << "\n";
-
-        SendToServer(ossRet.str().c_str());
+        logs << " lpNumberOfBytesWritten: " << *lpNumberOfBytesWritten << "\n";
+        logs << " Result: " << result << "\n";
     })
 
     return result;
@@ -460,31 +355,46 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         DetourRestoreAfterWith();
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
+
         DetourAttach(&(PVOID &)TrueMessageBoxA, &(PVOID &)HookedMessageBoxA);
         OutputDebugStringA("attached MessageBox hook");
+
         DetourAttach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
         OutputDebugStringA("attached CreateProcessA");
+
         DetourAttach(&(PVOID &)TrueGetWindow, &(PVOID &)HookedGetWindow);
         OutputDebugStringA("attached GetWindow");
+
         DetourAttach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
         OutputDebugStringA("attached CreateRemoteThread");
+
         DetourAttach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
         OutputDebugStringA("attached LoadLibraryA");
+
         DetourAttach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
         OutputDebugStringA("attached VirtualAlloc");
-        // DetourAttach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
-        // OutputDebugStringA("attached VirtualProtect");
+
+        DetourAttach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
+        OutputDebugStringA("attached VirtualProtect");
+
         DetourAttach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
         OutputDebugStringA("attached Sleep");
+
         DetourAttach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
         OutputDebugStringA("attached SendMessage");
+
         DetourAttach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);
         OutputDebugStringA("attached WriteProcessMemory");
 
         DetourTransactionCommit();
         OutputDebugStringA("commited hook");
 
+        IsLoggingOn = true; // Why Log when process is yet to attach
+        SendToServer("We Hooked Baby\n");
     } else if (reason == DLL_PROCESS_DETACH) {
+
+        SendToServer("We UnHooked Baby\n");
+        IsLoggingOn = false; // Why Log when process detached
 
         if (GlobalPipeHandle != INVALID_HANDLE_VALUE) {
             CloseHandle(GlobalPipeHandle);
@@ -493,13 +403,14 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
+
         DetourDetach(&(PVOID &)TrueMessageBoxA, &(PVOID &)HookedMessageBoxA);
         DetourDetach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
         DetourDetach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
         DetourDetach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
         DetourDetach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
         DetourDetach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
-        // DetourDetach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
+        DetourDetach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
         DetourDetach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
         DetourDetach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
         DetourDetach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);

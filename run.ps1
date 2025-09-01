@@ -85,7 +85,8 @@ if ($PSBoundParameters.ContainsKey('SampleTargetName'))
 				Sort-Object -Unique |
 				ForEach-Object { Write-Host " - $_" }
 		}
-	} else {
+	} else
+	{
 		Write-Host "Hook dll is not available"
 	}
 } else

@@ -152,7 +152,7 @@ main(int argc, char *argv[]) {
             DWORD bytesRead;
 
             while (ReadFile(Pipe, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead > 0) {
-                std::cout << "[Program B] Received hook text: " << buffer << "\n";
+                std::cout << "[Program] Received hook text: " << buffer << "\n";
             }
 
             CloseHandle(Pipe);
