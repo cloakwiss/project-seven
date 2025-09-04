@@ -151,9 +151,13 @@ main(int argc, char *argv[]) {
             char buffer[256];
             DWORD bytesRead;
 
+			std::cout << "{\n";
+			unsigned long i = 0;
             while (ReadFile(Pipe, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead > 0) {
-                std::cout << "[Program] Received hook text: " << buffer << "\n";
+                // std::cout << "[Program] Received hook text: \n" << buffer << "\n";
+                std::cout << "\"" << i++ << "\":" << buffer << ",\n";
             }
+			std::cout << "}\n";
 
             CloseHandle(Pipe);
         } else {

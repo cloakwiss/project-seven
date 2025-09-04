@@ -7,6 +7,10 @@
 *.dll
 *.ilk
 *.pdb
-*.db
+*.db*
+
+
 tmp/
+tmp.txt
+*.json
 matched.txt

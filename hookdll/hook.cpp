@@ -2,96 +2,39 @@
 
 #include <windows.h>
 #include <iostream>
-#include <cstdio>
-#include <sstream>
 
 #include "../builds/debug/detours/detours.h"
-
-static HANDLE GlobalPipeHandle = INVALID_HANDLE_VALUE;
-static thread_local unsigned long GlobalCallDepth = 0;
-static thread_local std::ostringstream logs;
-static thread_local bool IsLoggingOn = false;
-
-// ---------------------------------------------------------------------------------------------- //
-// THIS STUFF IS VERY IMPORTANT DO NOT FUCKING MESS WITH THIS AND JUST USE IT ------------------- //
-// ---------------------------------------------------------------------------------------------- //
-// The reason for keeping logs global is that we do not want to reallocate it again and again. -- //
-// It will then not reallocate memmory for the log all the time, we just clear it. -------------- //
-// ---------------------------------------------------------------------------------------------- //
-
-#define SEND_BEFORE_CALL(CODE)                                                                     \
-    if (GlobalCallDepth == 0 && IsLoggingOn) {                                                     \
-        IsLoggingOn = false;                                                                       \
-        CODE;                                                                                      \
-        SendToServer(logs.str().c_str());                                                          \
-        logs.str("");                                                                              \
-        logs.clear();                                                                              \
-        IsLoggingOn = true;                                                                        \
-    }                                                                                              \
-    GlobalCallDepth += 1;
-
-#define SEND_AFTER_CALL(CODE)                                                                      \
-    GlobalCallDepth -= 1;                                                                          \
-    if (GlobalCallDepth == 0 && IsLoggingOn) {                                                     \
-        IsLoggingOn = false;                                                                       \
-        CODE;                                                                                      \
-        SendToServer(logs.str().c_str());                                                          \
-        logs.str("");                                                                              \
-        logs.clear();                                                                              \
-        IsLoggingOn = true;                                                                        \
-    }
-// ---------------------------------------------------------------------------------------------- //
-// ---------------------------------------------------------------------------------------------- //
+#include "./base_overloads.cpp"
+#include "./hook_utils.cpp"
 
 
 
-void
-SendToServer(const char *text) {
-
-    if (GlobalPipeHandle == INVALID_HANDLE_VALUE) {
-
-        GlobalPipeHandle = CreateFileA(TEXT("\\\\.\\pipe\\DataPipe"), GENERIC_WRITE, 0, NULL,
-                                       OPEN_EXISTING, 0, NULL);
-
-        if (GlobalPipeHandle == INVALID_HANDLE_VALUE) {
-            DWORD LastError = GetLastError();
-            std::cerr << "Failed to open pipe. Error code: " << LastError << std::endl;
-            return;
-        }
-    }
-
-    DWORD bytesWritten = 0;
-    WriteFile(GlobalPipeHandle, text, (DWORD)strlen(text) + 1, &bytesWritten, NULL);
-}
-
-
-
+// MessageBoxA --------------------------------------------------------------------------------- //
 static int(WINAPI *TrueMessageBoxA)(HWND, LPCSTR, LPCSTR, UINT) = MessageBoxA;
 static int WINAPI
 HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 
-    OutputDebugStringA("Hooked messageBoxA");
+
 
     SEND_BEFORE_CALL({
-        logs << "[Hook] MessageBoxA. \n";
+        start_json_before("MessageBoxA");
 
-        logs << " hWnd: " << std::hex
-             << (hWnd ? reinterpret_cast<uintptr_t>(hWnd) : static_cast<uintptr_t>(0)) << std::endl;
-        logs << " lpText: " << (lpText ? lpText : "NULL") << "\n";
-        logs << " lpCaption: " << (lpCaption ? lpCaption : "NULL") << "\n";
-        logs << " uType: " << uType << "\n";
+        log_fields("hWnd", BOIL(hWnd));
+        log_fields("lpText", BOIL(lpText));
+        log_fields("lpCaption", BOIL(lpCaption));
+        log_fields("uType", BOIL(uType), true);
     })
 
     int result = TrueMessageBoxA(hWnd, lpText, lpCaption, uType);
 
     SEND_AFTER_CALL({
-        logs << " MessageBoxA returned : \n";
-        logs << " returned: " << result << std::endl;
+        start_json_after("MessageBoxA", "0ms");
+        log_fields("result", BOIL(result), true);
     })
 
     return result;
 }
-
+// --------------------------------------------------------------------------------------------- //
 
 
 // CreateProcessA
@@ -140,16 +83,16 @@ static HWND
 HookedGetWindow(HWND hWnd, UINT uCmd) {
 
     SEND_BEFORE_CALL({
-        logs << "[HOOK] GetWindow called \n";
-        logs << " hWnd: " << std::hex << reinterpret_cast<uintptr_t>(hWnd) << std::endl
-             << " uCmd: " << uCmd << std::endl;
+        start_json_before("GetWindow");
+        log_fields("hWnd", BOIL(hWnd));
+        log_fields("uCmd", BOIL(uCmd), true);
     })
 
     HWND result = TrueGetWindow(hWnd, uCmd);
 
     SEND_AFTER_CALL({
-        logs << " GetWindow Returned \n";
-        logs << " returned: " << std::hex << reinterpret_cast<uintptr_t>(result) << std::endl;
+        start_json_after("GetWindow", "0ms");
+        log_fields("result ", BOIL(result), true);
     })
 
     return result;
@@ -252,21 +195,19 @@ static BOOL WINAPI
 HookedVirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect) {
 
     SEND_BEFORE_CALL({
-        logs << "[HOOK] VirtualProtect called\n";
-        logs << " lpAddress: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpAddress) << std::dec
-             << std::endl;
-        logs << " dwSize: " << dwSize << std::endl;
-        logs << " flNewProtect: 0x" << std::hex << flNewProtect << std::dec << std::endl;
-        logs << " lpflOldProtect: " << (lpflOldProtect ? "valid pointer" : "NULL") << std::endl;
+        start_json_before("VirtualProtect");
+        log_fields("lpAddress", BOIL(lpAddress));
+        log_fields("dwSize", BOIL(dwSize));
+        log_fields("flNewProtect", BOIL(flNewProtect));
+        log_fields("lpflOldProtect", BOIL(lpflOldProtect), true);
     })
 
     BOOL result = TrueVirtualProtect(lpAddress, dwSize, flNewProtect, lpflOldProtect);
 
     SEND_AFTER_CALL({
-        logs << " VirtualProtect returned \n";
-        logs << " returned: " << (result ? "TRUE" : "FALSE") << std::endl;
-        logs << " oldProtection: " << std::hex << (lpflOldProtect && result ? *lpflOldProtect : 0)
-             << std::endl;
+        start_json_after("VirtualProtect", "0ms");
+        log_fields("result", BOIL(result));
+        log_fields("lpflOldProtect", BOIL(*lpflOldProtect), true);
     })
 
     return result;
@@ -280,11 +221,14 @@ static VOID(WINAPI *TrueSleep)(DWORD dwMilliseconds) = Sleep;
 static VOID WINAPI
 HookedSleep(DWORD dwMilliseconds) {
 
-    SEND_BEFORE_CALL({ logs << "[HOOK] Sleep called: " << dwMilliseconds << " ms\n"; })
+    SEND_BEFORE_CALL({
+        start_json_before("Sleep");
+        log_fields("dwMilliseconds", BOIL(dwMilliseconds));
+    })
 
     TrueSleep(dwMilliseconds);
 
-    SEND_AFTER_CALL({ logs << "Sleep returned\n"; })
+    SEND_AFTER_CALL({ start_json_after("Sleep", "0ms"); })
 }
 
 
@@ -297,7 +241,7 @@ static LRESULT WINAPI
 HookedSendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
 
     SEND_BEFORE_CALL({
-        logs << "[HOOK] SendMessage called\n";
+        start_json_before("SendMessage");
         logs << " hWnd: " << std::hex << reinterpret_cast<uintptr_t>(hWnd) << std::dec << std::endl;
         logs << " Msg: " << std::hex << Msg << std::dec << std::endl;
         logs << " wParam: " << std::hex << wParam << std::dec << std::endl;
@@ -324,7 +268,7 @@ static BOOL WINAPI
 HookedWriteProcessMemory(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer, SIZE_T nSize,
                          SIZE_T *lpNumberOfBytesWritten) {
     SEND_BEFORE_CALL({
-        logs << "[HOOK] WriteProcessMemory called\n";
+        start_json_before("WriteProcessMemory");
         logs << " hProcess: 0x" << std::hex << reinterpret_cast<uintptr_t>(hProcess) << std::dec
              << "\n";
         logs << " lpBaseAddress: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpBaseAddress)
@@ -390,10 +334,10 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         OutputDebugStringA("commited hook");
 
         IsLoggingOn = true; // Why Log when process is yet to attach
-        SendToServer("We Hooked Baby\n");
+        SendToServer("\"STARTED\"\n");
     } else if (reason == DLL_PROCESS_DETACH) {
 
-        SendToServer("We UnHooked Baby\n");
+        SendToServer("\"ENDED\"\n");
         IsLoggingOn = false; // Why Log when process detached
 
         if (GlobalPipeHandle != INVALID_HANDLE_VALUE) {
