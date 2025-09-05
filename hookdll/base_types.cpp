@@ -17,6 +17,24 @@
 
 // Hex printing functions ------------------------------------------------------------- //
 
+std::string hexify(long val) {
+    char buffer[19];
+    snprintf(buffer, sizeof(buffer), "0x%016lX", val);
+    return std::string(buffer);
+}
+
+std::string hexify(int32_t val) {
+    char buffer[11];
+    snprintf(buffer, sizeof(buffer), "0x%08X", val);  
+    return std::string(buffer);
+}
+
+std::string hexify(int64_t val) {
+    char buffer[19]; 
+    snprintf(buffer, sizeof(buffer), "0x%016llX", val);
+    return std::string(buffer);
+}
+
 std::string hexify(uint8_t val) {
     char buffer[5];  
     snprintf(buffer, sizeof(buffer), "0x%02X", val);
@@ -41,7 +59,7 @@ std::string hexify(uint64_t val) {
     return std::string(buffer);
 }
 
-std::string hexify(unsigned long val) {
+std::string _hexify(unsigned long val) {
     #if defined(_WIN64) || defined(__x86_64__) 
         char buffer[19]; 
         snprintf(buffer, sizeof(buffer), "0x%016lX", val);
@@ -91,13 +109,13 @@ BOIL_CHAR(CHAR val) {
 
 std::string 
 BOIL_COLORREF(COLORREF val) {
-    return hexify(val);
+    return _hexify(val);
 }
 
 // with D
 std::string 
 BOIL_DWORD(DWORD val) {
-    return hexify(val);
+    return _hexify(val);
 }
 
 std::string 
@@ -139,7 +157,7 @@ BOIL_HACCEL(HACCEL val){
 
 std::string
 BOIL_HALF_PTR(HALF_PTR val){
-    return hexify(static_cast<uint8_t>(val));
+    return hexify(static_cast<uintptr_t>(val));
 }
 
 std::string
@@ -269,7 +287,7 @@ std::string BOIL_HCURSOR( HCURSOR val) {
 }
 
 std::string BOIL_HFILE( HFILE val) {
-    return hexify(static_cast<uint8_t>(val));
+    return hexify(static_cast<int32_t>(val));
 }
 
 std::string BOIL_HMODULE( HMODULE val) {
@@ -287,4 +305,148 @@ std::string BOIL_HMONITOR(HMONITOR val) {
 std::string BOIL_HWINSTA(HWINSTA val) {
     return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
 }
+
+// with I
+std::string BOIL_INT( INT val) {
+    return hexify(val);
+}
+
+std::string BOIL_INT8( INT8 val) {
+    return hexify(val);
+}
+
+std::string BOIL_INT16( INT16 val) {
+    return hexify(val);
+}
+
+std::string BOIL_INT32( INT32 val) {
+    return hexify(val);
+}
+
+std::string BOIL_INT64( INT64 val) {
+    return hexify(val);
+}
+
+std::string BOIL_INT_PTR( INT_PTR val) {
+    return _hexify(val);
+}
+
+// with L
+std::string BOIL_LANGID( LANGID val) {
+    return hexify(val);
+}
+
+std::string BOIL_LCID( LCID val) {
+    return BOIL_DWORD(val);
+}
+
+std::string BOIL_LCTYPE( LCTYPE val) {
+    return BOIL_DWORD(val);
+}
+
+std::string BOIL_LGRPID( LGRPID val) {
+    return BOIL_DWORD(val);
+}
+
+std::string BOIL_LPCOLORREF( LPCOLORREF val) {
+    return BOIL_DWORD(*val);
+}
+
+std::string BOIL_LPDWORD( LPDWORD val) {
+    return BOIL_DWORD(*val);
+}
+
+std::string BOIL_LONG( LONG val) {
+    return hexify(val);
+}
+
+std::string BOIL_LONGLONG( LONGLONG val) {
+    return hexify(val);
+}
+
+std::string BOIL_LONG_PTR( LONG_PTR val) {
+    return hexify(val);
+}
+
+std::string BOIL_LONG32( LONG32 val) {
+    return hexify(val);
+}
+
+std::string BOIL_LONG64( LONG64 val) {
+    return hexify(val);
+}
+
+std::string BOIL_LPARAM( LPARAM val) {
+    return BOIL_LONG_PTR(val);
+}
+
+std::string BOIL_LPBOOL( LPBOOL val) {
+    return BOIL_BOOL(*val);
+}
+
+std::string BOIL_LPBYTE( LPBYTE val) {
+    return BOIL_BYTE(*val);
+}
+
+std::string BOIL_LPCSTR( LPCSTR val) {
+    return BOIL_CHAR(*val);
+}
+
+std::string BOIL_LPCWSTR( LPCWSTR val) {
+    return hexify(*val);
+}
+
+std::string BOIL_LPCTSTR( LPCTSTR val) {
+    return BOIL_LPCWSTR(val);
+}
+
+std::string BOIL_LPCVOID( LPCVOID val) {
+    return hexify(reinterpret_cast<uintptr_t>(val));
+}
+
+std::string BOIL_LPHANDLE( LPHANDLE val) {
+    return BOIL_HANDLE(*val);
+}
+
+std::string BOIL_LPINT( LPINT val) {
+    return hexify(*val);
+}
+
+std::string BOIL_LPLONG( LPLONG val) {
+    return hexify(*val);
+}
+
+std::string BOIL_LPSTR( LPSTR val) {
+    return BOIL_CHAR(*val);
+}
+
+std::string BOIL_LPWSTR( LPWSTR val) {
+    return std::to_string(*val);
+}
+
+std::string BOIL_LPTSTR( LPTSTR val) {
+    return BOIL_LPWSTR(val);
+}
+
+std::string BOIL_LPVOID( LPVOID val) {
+    return hexify(reinterpret_cast<uintptr_t>(val));
+}
+
+std::string BOIL_LPWORD( LPWORD val) {
+    return hexify(*val);
+}
+
+std::string BOIL_LRESULT( LRESULT val) {
+    return BOIL_LONG_PTR(val);
+}
+
+std::string BOIL_WCHAR( WCHAR val) {
+    return hexify(val);
+}
+
+std::string BOIL_WORD( WORD val) {
+    return hexify(val);
+}
+
+
 #endif
