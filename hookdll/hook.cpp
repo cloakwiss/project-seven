@@ -1,3 +1,4 @@
+#include <cstdint>
 #pragma comment(lib, "user32.lib")
 
 #include <windows.h>
@@ -25,10 +26,11 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
         log_fields("uType", BOIL(uType), true);
     })
 
-    int result = TrueMessageBoxA(hWnd, lpText, lpCaption, uType);
+    int result;
+    TIME({ result = TrueMessageBoxA(hWnd, lpText, lpCaption, uType); });
 
     SEND_AFTER_CALL({
-        start_json_after("MessageBoxA", "0ms");
+        start_json_after("MessageBoxA");
         log_fields("result", BOIL(result), true);
     })
 
@@ -88,10 +90,11 @@ HookedGetWindow(HWND hWnd, UINT uCmd) {
         log_fields("uCmd", BOIL(uCmd), true);
     })
 
-    HWND result = TrueGetWindow(hWnd, uCmd);
+    HWND result;
+    TIME({ result = TrueGetWindow(hWnd, uCmd); })
 
     SEND_AFTER_CALL({
-        start_json_after("GetWindow", "0ms");
+        start_json_after("GetWindow");
         log_fields("result ", BOIL(result), true);
     })
 
@@ -202,10 +205,11 @@ HookedVirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD
         log_fields("lpflOldProtect", BOIL(lpflOldProtect), true);
     })
 
-    BOOL result = TrueVirtualProtect(lpAddress, dwSize, flNewProtect, lpflOldProtect);
+    BOOL result;
+    TIME({ result = TrueVirtualProtect(lpAddress, dwSize, flNewProtect, lpflOldProtect); })
 
     SEND_AFTER_CALL({
-        start_json_after("VirtualProtect", "0ms");
+        start_json_after("VirtualProtect");
         log_fields("result", BOIL(result));
         log_fields("lpflOldProtect", BOIL(*lpflOldProtect), true);
     })
@@ -228,7 +232,7 @@ HookedSleep(DWORD dwMilliseconds) {
 
     TrueSleep(dwMilliseconds);
 
-    SEND_AFTER_CALL({ start_json_after("Sleep", "0ms"); })
+    SEND_AFTER_CALL({ start_json_after("Sleep"); })
 }
 
 
@@ -332,6 +336,12 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
         DetourTransactionCommit();
         OutputDebugStringA("commited hook");
+
+
+        // Time Init
+        LARGE_INTEGER FreqStructResult = {};
+        QueryPerformanceFrequency(&FreqStructResult);
+        PerfCounterFrequency = FreqStructResult.QuadPart;
 
         IsLoggingOn = true; // Why Log when process is yet to attach
         SendToServer("\"STARTED\"\n");

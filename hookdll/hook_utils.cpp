@@ -2,6 +2,7 @@
 #define HOOK_UTILS_H
 // --------------------------------------------------------------------------------------------- //
 
+#include <cstdint>
 #include <windows.h>
 #include <iostream>
 #include <sstream>
@@ -11,6 +12,8 @@ static thread_local unsigned long GlobalCallDepth = 0;
 static thread_local unsigned long GlobalMaxCallDepth = 7;
 static thread_local std::ostringstream logs;
 static thread_local bool IsLoggingOn = false;
+static thread_local int64_t PerfCounterFrequency;
+static thread_local double TimeElapsed;
 
 
 
@@ -42,11 +45,11 @@ start_json_before(const std::string &hookName) {
 }
 
 static void
-start_json_after(const std::string &hookName, std::string time) {
+start_json_after(const std::string &hookName) {
     logs << "{\n";
     logs << "  \"hook\": \"" << hookName << "\",\n";
     logs << "  \"call_depth\": \"" << GlobalCallDepth << "\",\n";
-    logs << "  \"time\": \"" << time << "\",\n";
+    logs << "  \"time\": \"" << TimeElapsed << "us" << "\",\n";
     logs << "  \"returns\": {\n";
 }
 
@@ -97,6 +100,18 @@ end_json() {
         logs.clear();                                                                              \
         IsLoggingOn = true;                                                                        \
     }
+
+
+
+#define TIME(CODE)                                                                                 \
+    LARGE_INTEGER BeginCounter;                                                                    \
+    QueryPerformanceCounter(&BeginCounter);                                                        \
+    CODE;                                                                                          \
+    LARGE_INTEGER EndCounter;                                                                      \
+    QueryPerformanceCounter(&EndCounter);                                                          \
+    int64_t CounterElapsed = EndCounter.QuadPart - BeginCounter.QuadPart;                          \
+    TimeElapsed = 1000.0f * 1000.0f * (double)CounterElapsed / (double)PerfCounterFrequency;
+
 // ---------------------------------------------------------------------------------------------- //
 // ---------------------------------------------------------------------------------------------- //
 
