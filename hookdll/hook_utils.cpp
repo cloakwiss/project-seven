@@ -99,14 +99,15 @@ end_json() {
         logs.str("");                                                                              \
         logs.clear();                                                                              \
         IsLoggingOn = true;                                                                        \
-    }
+    }                                                                                              \
+    TimeElapsed = 0.0f;
 
 
 
-#define TIME(CODE)                                                                                 \
+#define TIME(CALL)                                                                                 \
     LARGE_INTEGER BeginCounter;                                                                    \
     QueryPerformanceCounter(&BeginCounter);                                                        \
-    CODE;                                                                                          \
+    CALL;                                                                                          \
     LARGE_INTEGER EndCounter;                                                                      \
     QueryPerformanceCounter(&EndCounter);                                                          \
     int64_t CounterElapsed = EndCounter.QuadPart - BeginCounter.QuadPart;                          \
