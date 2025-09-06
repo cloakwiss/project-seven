@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <functional>
 #include <typeindex>
-#include <basetsd.h>
+#include <BaseTsd.h>
 #include <string>
 #include <windef.h>
 #include <windows.h>
@@ -17,45 +17,26 @@
 
 // Hex printing functions ------------------------------------------------------------- //
 
-std::string hexify(long val) {
+template <typename T>
+std::string hexify(T val) {
     char buffer[19];
-    snprintf(buffer, sizeof(buffer), "0x%016lX", val);
-    return std::string(buffer);
-}
-
-std::string hexify(int32_t val) {
-    char buffer[11];
-    snprintf(buffer, sizeof(buffer), "0x%08X", val);  
-    return std::string(buffer);
-}
-
-std::string hexify(int64_t val) {
-    char buffer[19]; 
-    snprintf(buffer, sizeof(buffer), "0x%016llX", val);
-    return std::string(buffer);
-}
-
-std::string hexify(uint8_t val) {
-    char buffer[5];  
-    snprintf(buffer, sizeof(buffer), "0x%02X", val);
-    return std::string(buffer);
-}
-
-std::string hexify(uint16_t val) {
-    char buffer[7];  
-    snprintf(buffer, sizeof(buffer), "0x%04X", val);
-    return std::string(buffer);
-}
-
-std::string hexify(uint32_t val) {
-    char buffer[11];  
-    snprintf(buffer, sizeof(buffer), "0x%08X", val);
-    return std::string(buffer);
-}
-
-std::string hexify(uint64_t val) {
-    char buffer[19]; 
-    snprintf(buffer, sizeof(buffer), "0x%016X", val);
+    if (std::is_same<T, long>::value) {
+        snprintf(buffer, sizeof(buffer), "0x%016lX", val);
+    } else if (std::is_same<T, int32_t>::value) {
+        snprintf(buffer, sizeof(buffer), "0x%08X", val);
+    } else if (std::is_same<T, int64_t>::value) {
+        snprintf(buffer, sizeof(buffer), "0x%016llX", val);
+    } else if (std::is_same<T, uint8_t>::value) {
+        snprintf(buffer, sizeof(buffer), "0x%02X", val);
+    } else if (std::is_same<T, uint16_t>::value) {
+        snprintf(buffer, sizeof(buffer), "0x%04X", val);
+    } else if (std::is_same<T, uint32_t>::value) {
+        snprintf(buffer, sizeof(buffer), "0x%08X", val);
+    } else if (std::is_same<T, uint64_t>::value) {
+        snprintf(buffer, sizeof(buffer), "0x%016lX", val);
+    } else {
+        return "Unsupported type";
+    }
     return std::string(buffer);
 }
 
@@ -70,6 +51,14 @@ std::string _hexify(unsigned long val) {
         return std::string(buffer);
     #endif
 }
+// check for nullptr -------------------------------------------------------------- //
+template <typename T>
+T inspect(T* ptr) {
+    if (ptr == nullptr) {
+        return 0;
+    }
+    return *ptr;
+}
 
 // Functions to handle different types -------------------------------------------- //
 
@@ -83,12 +72,12 @@ BOIL_ATOM(ATOM val) {
 // with B
 std::string 
 BOIL_BOOL(BOOL val) {
-    return val ? "TRUE" : "FALSE";
+    return hexify(val);
 }
 
 std::string 
 BOIL_BOOLEAN(BOOLEAN val) {
-    return val ? "TRUE" : "FALSE";
+    return hexify(val);
 }
 
 std::string 
@@ -99,12 +88,12 @@ BOIL_BYTE(BYTE val) {
 // with C
 std::string 
 BOIL_CCHAR(CCHAR val) {
-    return std::string(1, val);
+    return hexify(val);
 }
 
 std::string 
 BOIL_CHAR(CHAR val) {
-    return std::string(1, val);
+    return hexify(val);
 }
 
 std::string 
@@ -278,9 +267,9 @@ std::string BOIL_SC_HANDLE(SC_HANDLE val) {
     return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
 }
 
-std::string BOIL_SERVICE_STATUS_HANDLE(SERVICE_STATUS_HANDLE val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
-}
+// std::string BOIL_SERVICE_STATUS_HANDLE(SERVICE_STATUS_HANDLE val) {
+//     return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+// }
 
 std::string BOIL_HCURSOR( HCURSOR val) {
     return BOIL_HICON(val);
@@ -348,12 +337,12 @@ std::string BOIL_LGRPID( LGRPID val) {
     return BOIL_DWORD(val);
 }
 
-std::string BOIL_LPCOLORREF( LPCOLORREF val) {
-    return BOIL_DWORD(*val);
-}
+// std::string BOIL_LPCOLORREF( LPCOLORREF val) {
+//     return BOIL_DWORD(inspect(val));
+// }
 
 std::string BOIL_LPDWORD( LPDWORD val) {
-    return BOIL_DWORD(*val);
+    return BOIL_DWORD(inspect(val));
 }
 
 std::string BOIL_LONG( LONG val) {
@@ -381,65 +370,94 @@ std::string BOIL_LPARAM( LPARAM val) {
 }
 
 std::string BOIL_LPBOOL( LPBOOL val) {
-    return BOIL_BOOL(*val);
+    std::cout << "got" << "\n";
+    return BOIL_BOOL(inspect(val));
 }
 
 std::string BOIL_LPBYTE( LPBYTE val) {
-    return BOIL_BYTE(*val);
+    return BOIL_BYTE(inspect(val));
 }
 
-std::string BOIL_LPCSTR( LPCSTR val) {
-    return BOIL_CHAR(*val);
+std::string BOIL_LPCSTR(LPCSTR val) {
+    std::string result;
+    while (*val) {
+        result += BOIL_CHAR(inspect(val));
+        ++val;
+    }
+    return result;
 }
 
-std::string BOIL_LPCWSTR( LPCWSTR val) {
-    return hexify(*val);
+std::string BOIL_LPCWSTR(LPCWSTR val) {
+    std::string result;
+    while (*val != '\0') {
+        result += hexify(inspect(val));
+        ++val;
+    }
+    return result;
 }
 
-std::string BOIL_LPCTSTR( LPCTSTR val) {
-    return BOIL_LPCWSTR(val);
-}
+// #ifdef UNICODE
+// std::string BOIL_LPCTSTR(LPCTSTR val){
+//     return BOIL_LPCWSTR(val);
+// }
+// #else
+// std::string BOIL_LPCTSTR(LPCTSTR val){
+//     return BOIL_LPCSTR(val);
+// }
+// #endif
+
 
 std::string BOIL_LPCVOID( LPCVOID val) {
     return hexify(reinterpret_cast<uintptr_t>(val));
 }
 
 std::string BOIL_LPHANDLE( LPHANDLE val) {
-    return BOIL_HANDLE(*val);
+    return BOIL_HANDLE(inspect(val));
 }
 
 std::string BOIL_LPINT( LPINT val) {
-    return hexify(*val);
+    return hexify(inspect(val));
 }
 
 std::string BOIL_LPLONG( LPLONG val) {
-    return hexify(*val);
+    return hexify(inspect(val));
 }
 
 std::string BOIL_LPSTR( LPSTR val) {
-    return BOIL_CHAR(*val);
+    std::string result;
+    while (*val) {
+        result += BOIL_CHAR(inspect(val));
+        ++val;
+    }
+    return result;
 }
 
-std::string BOIL_LPWSTR( LPWSTR val) {
-    return std::to_string(*val);
+std::string BOIL_LPWSTR(LPWSTR val) {
+    std::string result;
+    while (*val != L'\0') { 
+        result += hexify(inspect(val));  
+        ++val;
+    }
+    return result;
 }
 
-std::string BOIL_LPTSTR( LPTSTR val) {
-    return BOIL_LPWSTR(val);
-}
+// std::string BOIL_LPTSTR( LPTSTR val) {
+//     return BOIL_LPWSTR(val);
+// }
 
 std::string BOIL_LPVOID( LPVOID val) {
     return hexify(reinterpret_cast<uintptr_t>(val));
 }
 
 std::string BOIL_LPWORD( LPWORD val) {
-    return hexify(*val);
+    return hexify(inspect(val));
 }
 
 std::string BOIL_LRESULT( LRESULT val) {
     return BOIL_LONG_PTR(val);
 }
 
+//with W
 std::string BOIL_WCHAR( WCHAR val) {
     return hexify(val);
 }
@@ -447,6 +465,360 @@ std::string BOIL_WCHAR( WCHAR val) {
 std::string BOIL_WORD( WORD val) {
     return hexify(val);
 }
+
+std::string BOIL_WPARAM( WPARAM val) {
+    return hexify(val);
+}
+
+// with P
+std::string BOIL_PBOOL(PBOOL val){
+    return BOIL_BOOL(inspect(val));
+}
+
+std::string BOIL_PBOOLEAN(PBOOLEAN val){
+    return BOIL_BOOLEAN(inspect(val));
+}
+
+std::string BOIL_PBYTE(PBYTE val){
+    return BOIL_BYTE(inspect(val));
+}
+
+std::string BOIL_PCHAR(PCHAR val){
+    return BOIL_CHAR(inspect(val));
+}
+
+std::string BOIL_PCSTR(PCSTR val) {
+    std::string result;
+    while (*val) {
+        result += BOIL_CHAR(inspect(val));
+        ++val;
+    }
+    return result;
+}
+
+// #ifdef UNICODE
+// std::string BOIL_PCTSTR(PCTSTR val) {
+//     return BOIL_LPCWSTR(val);  // For Unicode, treat as LPCWSTR
+// }
+// #else
+// std::string BOIL_PCTSTR(PCTSTR val) {
+//     return BOIL_LPCSTR(val);  // For ANSI, treat as LPCSTR
+// }
+// #endif
+
+
+std::string BOIL_PCWSTR(PCWSTR val) {
+    std::string result;
+    while (*val != L'\0') {
+        result += BOIL_WCHAR(inspect(val));
+        ++val;
+    }
+    return result;
+}
+
+std::string BOIL_PDWORD(PDWORD val){
+    return BOIL_DWORD(inspect(val));
+}
+
+std::string BOIL_PDWORDLONG(PDWORDLONG val){
+    return BOIL_DWORDLONG(inspect(val));
+}
+
+std::string BOIL_PDWORD_PTR(PDWORD_PTR val){
+    return BOIL_DWORD_PTR(inspect(val));
+}
+
+std::string BOIL_PDWORD32(PDWORD32 val){
+    return BOIL_DWORD32(inspect(val));
+}
+
+std::string BOIL_PDWORD64(PDWORD64 val){
+    return BOIL_DWORD64(inspect(val));
+}
+
+std::string BOIL_PFLOAT(PFLOAT val){
+    return BOIL_FLOAT(inspect(val));
+}
+
+std::string BOIL_PHALF_PTR(PHALF_PTR val){
+    return BOIL_HALF_PTR(inspect(val));
+}
+
+std::string BOIL_PHANDLE(PHANDLE val){
+    return BOIL_HANDLE(inspect(val));
+}
+
+std::string BOIL_PHKEY(PHKEY val){
+    return BOIL_HKEY(inspect(val));
+}
+
+std::string BOIL_PINT(PINT val){
+    return BOIL_INT(inspect(val));
+}
+
+std::string BOIL_PINT_PTR(PINT_PTR val){
+    return BOIL_INT_PTR(inspect(val));
+}
+
+// std::string BOIL_PINT8(PINT8 val){
+//     return BOIL_INT8(inspect(val));
+// }
+
+// std::string BOIL_PINT16(PINT16 val){
+//     return BOIL_INT16(inspect(val));
+// }
+
+std::string BOIL_PINT32(PINT32 val){
+    return BOIL_INT32(inspect(val));
+}
+
+std::string BOIL_PINT64(PINT64 val){
+    return BOIL_INT64(inspect(val));
+}
+
+std::string BOIL_PLCID(PLCID val){
+    return BOIL_PDWORD(val);
+}
+
+std::string BOIL_PLONG(PLONG val){
+    return BOIL_LONG(inspect(val));
+}
+
+std::string BOIL_PLONGLONG(PLONGLONG val){
+    return BOIL_LONGLONG(inspect(val));
+}
+
+std::string BOIL_PLONG_PTR(PLONG_PTR val){
+    return BOIL_LONG_PTR(inspect(val));
+}
+
+std::string BOIL_PLONG32(PLONG32 val){
+    return BOIL_LONG32(inspect(val));
+}
+
+std::string BOIL_PLONG64(PLONG64 val){
+    return BOIL_LONG64(inspect(val));
+}
+
+// // with Q
+/*---------NOT DEFINED IN HEADER-----------//
+
+std::string BOIL_QWORD(QWORD val){
+    return hexify(inspect(val));
+}
+
+-----------------------------------------/*/
+
+
+// with S
+
+std::string BOIL_SC_LOCK(SC_LOCK val){
+    return BOIL_LPVOID(val);
+}
+
+
+std::string BOIL_SHORT(SHORT val){
+    return hexify(val);
+}
+
+std::string BOIL_SIZE_T(SIZE_T val){
+    return hexify(val);
+}
+
+std::string BOIL_SSIZE_T(SSIZE_T val){
+    return BOIL_LONG_PTR(val);
+}
+
+// with T
+std::string BOIL_TBYTE(TBYTE val){
+    return BOIL_WCHAR(val);
+}
+
+std::string BOIL_TCHAR(TCHAR val){
+    return BOIL_WCHAR(val);
+}
+
+// with U
+
+std::string BOIL_UCHAR(UCHAR val){
+    return hexify(val);
+}
+
+std::string BOIL_UHALF_PTR(UHALF_PTR val){
+    return hexify(val);
+}
+
+std::string BOIL_UINT(UINT val){
+    return hexify(val);
+}
+
+std::string BOIL_UINT_PTR(UINT_PTR val){
+    return hexify(val);
+}
+
+std::string BOIL_UINT8(UINT8 val){
+    return hexify(val);
+}
+
+std::string BOIL_UINT16(UINT16 val){
+    return hexify(val);
+}
+
+std::string BOIL_UINT32(UINT32 val){
+    return hexify(val);
+}
+
+std::string BOIL_UINT64(UINT64 val){
+    return hexify(val);
+}
+
+std::string BOIL_ULONG(ULONG val){
+    return _hexify(val);
+}
+
+std::string BOIL_ULONGLONG(ULONGLONG val){
+    return hexify(val);
+}
+
+std::string BOIL_ULONG_PTR(ULONG_PTR val){
+    return hexify(val);
+}
+
+std::string BOIL_ULONG32(ULONG32 val){
+    return hexify(val);
+}
+
+std::string BOIL_ULONG64(ULONG64 val){
+    return hexify(val);
+}
+
+std::string BOIL_USHORT(USHORT val){
+    return hexify(val);
+}
+
+std::string BOIL_USN( USN val){
+    return BOIL_LONGLONG(val);
+}
+
+// with P
+
+std::string BOIL_PSHORT(PSHORT val){
+    return BOIL_SHORT(inspect(val));
+}
+
+std::string BOIL_PSIZE_T(PSIZE_T val){
+    return BOIL_SIZE_T(inspect(val));
+}
+
+std::string BOIL_PSSIZE_T(PSSIZE_T val){
+    return BOIL_SSIZE_T(inspect(val));
+}
+
+std::string BOIL_PSTR(PSTR val){
+    std::string result;
+    while(*val){
+        result += BOIL_CHAR(inspect(val));
+        ++val;
+    }
+    return result;
+}
+
+std::string BOIL_PTBYTE(PTBYTE val){
+    return BOIL_TBYTE(inspect(val));
+}
+
+std::string BOIL_PTCHAR(PTCHAR val){
+    return BOIL_TCHAR(inspect(val));
+}
+
+std::string BOIL_PTSTR(PTSTR val){
+    std::string result;
+    while(*val){
+        result += BOIL_CHAR(inspect(val));
+        ++val;
+    }
+    return result;
+}
+
+std::string BOIL_PUCHAR(PUCHAR val){
+    return BOIL_UCHAR(inspect(val));
+}
+
+std::string BOIL_PUHALF_PTR(PUHALF_PTR val){
+    return BOIL_UHALF_PTR(inspect(val));
+}
+
+std::string BOIL_PUINT(PUINT val){
+    return BOIL_UINT(inspect(val));
+}
+
+std::string BOIL_PUINT_PTR(PUINT_PTR val){
+    return BOIL_UINT_PTR(inspect(val));
+}
+
+// std::string BOIL_PUINT8(PUINT8 val){
+//     return BOIL_UINT8(inspect(val));
+// }
+
+// std::string BOIL_PUINT16(PUINT16 val){
+//     return BOIL_UINT16(inspect(val));
+// }
+
+std::string BOIL_PUINT32(PUINT32 val){
+    return BOIL_UINT32(inspect(val));
+}
+
+std::string BOIL_PUINT64(PUINT64 val){
+    return BOIL_UINT64(inspect(val));
+}
+
+std::string BOIL_PULONG(PULONG val) {
+    return BOIL_ULONG(inspect(val));
+}
+
+std::string BOIL_PULONGLONG(PULONGLONG val) {
+    return BOIL_ULONGLONG(inspect(val));
+}
+
+std::string BOIL_PULONG_PTR(PULONG_PTR val) {
+    return BOIL_ULONG_PTR(inspect(val));
+}
+
+std::string BOIL_PULONG32(PULONG32 val) {
+    return BOIL_ULONG32(inspect(val));
+}
+
+std::string BOIL_PULONG64(PULONG64 val) {
+    return BOIL_ULONG64(inspect(val));
+}
+
+std::string BOIL_PUSHORT(PUSHORT val) {
+    return BOIL_USHORT(inspect(val));
+}
+
+std::string BOIL_PVOID(PVOID val) {
+    return hexify(reinterpret_cast<uintptr_t>(val));
+}
+
+std::string BOIL_PWCHAR(PWCHAR val) {
+    return BOIL_WCHAR(inspect(val));
+}
+
+std::string BOIL_PWORD(PWORD val) {
+    return BOIL_WORD(inspect(val));
+}
+
+std::string BOIL_PWSTR(PWSTR val) {
+    std::string result;
+    while (*val) { 
+        result += BOIL_WCHAR(inspect(val));
+        ++val;
+    }
+    return result;
+}
+
+
+
 
 
 #endif
