@@ -1,1 +1,1 @@
-# Project 7(Name not finalized)
+# Project 7: BinStop
