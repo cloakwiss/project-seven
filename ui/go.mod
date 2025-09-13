@@ -7,4 +7,8 @@ require (
 	github.com/webview/webview_go v0.0.0-20240831120633-6173450d4dd6
 )
 
-require github.com/TheTitanrain/w32 v0.0.0-20180517000239-4f5cfb03fabf // indirect
+require (
+	github.com/Microsoft/go-winio v0.6.2 // indirect
+	github.com/TheTitanrain/w32 v0.0.0-20180517000239-4f5cfb03fabf // indirect
+	golang.org/x/sys v0.10.0 // indirect
+)
