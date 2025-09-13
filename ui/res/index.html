@@ -9,12 +9,13 @@
 
 <body>
 	<div class="container">
-		<input type="text" id="fileName" placeholder="Selected file will appear here" readonly>
+		<input type="text" id="target_path" placeholder="Selected target executable path will appear here" readonly>
+		<input type="text" id="hookdll_path" placeholder="Selected hookdll will appear here" readonly>
 		<div class="buttons">
-			<button id="btn1">Button 1</button>
-			<button id="btn2">Button 2</button>
-			<button id="btn3">Pick File</button>
+			<button id="target_pick">Pick Target</button>
+			<button id="hookdll_pick">Pick Hookdll</button>
 		</div>
+		<button id="spawnp7">Start</button>
 		<!-- Hidden file input -->
 		<input type="file" id="fileInput" style="display: none;">
 	</div>

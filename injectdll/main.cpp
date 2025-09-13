@@ -1,4 +1,4 @@
-#pragma comment(lib, "./builds/debug/detours/detours.lib")
+#pragma comment(lib, "./detours/detours.lib")
 
 #include <iostream>
 #include <windows.h>
@@ -80,10 +80,17 @@ ParseArgs(int argc, char *argv[], char **DllPath, char **ExecutablePath, bool *R
     }
 
     // Must have both DLL and Executable unless help was requested
-    if (*DllPath == nullptr || *ExecutablePath == nullptr || needHelp) {
-        PrintUsage();
-        return 1;
-    }
+	if (*Remove) {
+		if (*ExecutablePath == nullptr || needHelp) {
+			PrintUsage();
+			return 1;
+		}
+	} else {
+		if (*DllPath == nullptr || *ExecutablePath == nullptr || needHelp) {
+			PrintUsage();
+			return 1;
+		}
+	}
 
     return 0;
 }
@@ -114,7 +121,7 @@ main(int argc, char *argv[]) {
     // the issue of not being able to do
     // blocking tasks in DllMain
     if (InjectHookDll(DllPath, ExecutablePath, Remove)) {
-        std::cerr << "Injecting/Dejecting the Hook Failed.\n";
+        std::cerr << "Injecting/Removing the Hook Failed.\n";
         return 1;
     }
 

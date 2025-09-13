@@ -117,7 +117,7 @@ function Build-Core
 
 	$rel_path_prefix = "../../"
 
-	$file_path = "core/main.cpp"
+	$file_path = "injectdll/main.cpp"
 
 	$compile_path = "builds/" + $Config
 	New-Item -ItemType Directory -Path $compile_path -Force

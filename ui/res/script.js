@@ -1,20 +1,27 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const fileNameBox = document.getElementById("fileName");
-
-  document.getElementById("btn1").addEventListener("click", () => {
-    alert("Button 1 clicked!");
-  });
-
-  document.getElementById("btn2").addEventListener("click", () => {
-    alert("Button 2 clicked!");
-  });
-
-  document.getElementById("btn3").addEventListener("click", async () => {
+  const TargetPathBox = document.getElementById("target_path");
+  document.getElementById("target_pick").addEventListener("click", async () => {
     // call the Go backend
-    // using the bound function named "PickFile"
-    const path = await window.PickFile();
+    const path = await window.PickTarget();
     if (path) {
-      fileNameBox.value = path;
+      TargetPathBox.value = path;
     }
+  });
+
+  const HookdllPathBox = document.getElementById("hookdll_path");
+  document.getElementById("hookdll_pick").addEventListener("click", async () => {
+    // call the Go backend
+    const path = await window.PickHookdll();
+    if (path) {
+      HookdllPathBox.value = path;
+    }
+  });
+  
+  var isStarted = false
+  document.getElementById("spawnp7").addEventListener("click", async() => {
+	if (!isStarted) {
+		await window.SpawnP7();
+		isStarted = true;
+	}
   });
 });
