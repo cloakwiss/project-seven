@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"os/exec"
 	"path/filepath"
-	// "time"
+	// "syscall"
+	// "runtime"
+	"time"
 	// "strings"
 
 	"ui_server/doman"
@@ -67,10 +69,12 @@ func pickFile() (string, error) {
 	return abs, nil
 }
 
-func handleClient(conn any, w *webview.WebView) {
+func handleClient(conn any, w *webview.WebView, cancel context.CancelFunc) {
+
 	defer func() {
 		if c, ok := conn.(interface{ Close() error }); ok {
 			c.Close()
+			cancel()
 		}
 	}()
 
@@ -85,7 +89,7 @@ func handleClient(conn any, w *webview.WebView) {
 	for scanner.Scan() {
 		text := scanner.Text()
 		html := fmt.Sprintf("\"%d\": %s\n", i, text)
-		doman.AppendTextById("hook-status", html, w)
+		doman.AppendTextById("hook-status", html, w) // I am getting blocked, it doesn't work for some reason
 		i++
 	}
 
@@ -121,18 +125,24 @@ func spawnP7(TargetPath string, HookdllPath string, w *webview.WebView) {
 	fmt.Println("Waiting for Hook DLL...")
 
 	go func() {
-		spawn := exec.Command(TargetPath)
+		spawn := exec.Command("./launcher.exe", TargetPath)
+		// output, err := spawn.CombinedOutput()
+		// txt := fmt.Sprintf("Target Output:\n%s\n", output)
+		// tst := "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+		// doman.AppendTextById("console-output", txt+tst, w)
+		// if err != nil {
+		// 	log.Fatalf("Target Spawn Failed for some reason %v", err)
+		// }
 
-		output, err := spawn.CombinedOutput()
-		txt := fmt.Sprintf("Target Output:\n%s\n", output)
-		tst := "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-		doman.AppendTextById("console-output", txt + tst, w)
+		spawn.Stdout = nil
+		spawn.Stderr = nil
+		spawn.Stdin = nil
+
+		err := spawn.Start()
 		if err != nil {
-			log.Fatalf("Target Spawn Failed for some reason %v", err)
+			panic(err)
 		}
-
 		// cancel context when target app exits.
-		cancel()
 	}()
 
 	go func() {
@@ -142,9 +152,9 @@ func spawnP7(TargetPath string, HookdllPath string, w *webview.WebView) {
 				log.Printf("Listener stopped: %v", err)
 				return
 			}
+			fmt.Println("Hannji Hello")
 
-			// handle client in a new goroutine
-			go handleClient(conn, w)
+			handleClient(conn, w, cancel)
 		}
 	}()
 
@@ -155,7 +165,6 @@ func spawnP7(TargetPath string, HookdllPath string, w *webview.WebView) {
 // ---------------------------------------------------------------------------------------------- //
 
 func main() {
-
 	// Hosting the ui ----------------------------------------------------------------------------- //
 	fs := http.FileServer(http.Dir("./res"))
 	addr := ":42069"
@@ -210,16 +219,14 @@ func main() {
 	// -------------------------------------------------------------------------------------------- //
 
 	// Launching the UI --------------------------------------------------------------------------- //
-	// go func() {
-	// 	for {
-	// 		time.Sleep(500 * time.Millisecond)
-	// 		msg := fmt.Sprintf("Server time: %v", time.Now())
-	// 		js := fmt.Sprintf(`document.getElementById('console-output').innerText += %q;`, msg)
-	// 		w.Dispatch(func() {
-	// 			w.Eval(js)
-	// 		})
-	// 	}
-	// }()
+
+	go func() {
+		for {
+			time.Sleep(500 * time.Millisecond)
+			tst := fmt.Sprintf("Server time: %v\n", time.Now())
+			doman.AppendTextById("console-output", tst, &w)
+		}
+	}()
 	// 	tble := `
 	// <div class="table-container" id="divForTable">
 	//   <table class="table-styled">

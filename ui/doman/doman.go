@@ -23,6 +23,7 @@ func AppendHtmlById(id string, html string, w *webview.WebView) {
 func AppendTextById(id string, text string, w *webview.WebView) {
 	js := fmt.Sprintf(`document.getElementById('%s').value += %q;`, id, text)
 	(*w).Dispatch(func() {
+		fmt.Print(text)
 		(*w).Eval(js)
 	})
 }

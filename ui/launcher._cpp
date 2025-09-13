@@ -1,0 +1,59 @@
+#include <windows.h>
+#include <string>
+#include <iostream>
+
+int
+wmain(int argc, wchar_t *argv[]) {
+    if (argc < 2) {
+        std::wcerr << L"Usage: " << argv[0] << L" \"<command> [args]\"\n";
+        return 1;
+    }
+
+    // Build the command line string from argv[1]...
+    // Note: CreateProcess requires a mutable buffer for the command line.
+    // We'll use a wide char string.
+    std::wstring cmdLine = argv[1];
+    for (int i = 2; i < argc; ++i) {
+        cmdLine.push_back(L' ');
+        cmdLine.append(argv[i]);
+    }
+
+    STARTUPINFOW si;
+    PROCESS_INFORMATION pi;
+
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    ZeroMemory(&pi, sizeof(pi));
+
+    // Creation flags
+    DWORD creationFlags = CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS;
+
+    // Note: If you want stdout/stderr redirect, you would have to set STARTUPINFO handles, etc.
+    // But when using DETACHED_PROCESS, console handles are detached; typical live pipes may not
+    // work.
+
+    BOOL result = CreateProcessW(
+        /* lpApplicationName */ NULL,
+        /* lpCommandLine */ &cmdLine[0],
+        /* lpProcessAttributes */ NULL,
+        /* lpThreadAttributes */ NULL,
+        /* bInheritHandles */ FALSE,
+        /* dwCreationFlags */ creationFlags,
+        /* lpEnvironment */ NULL,
+        /* lpCurrentDirectory */ NULL,
+        /* lpStartupInfo */ &si,
+        /* lpProcessInformation */ &pi);
+
+    if (!result) {
+        DWORD err = GetLastError();
+        std::wcerr << L"CreateProcess failed. Error: " << err << L"\n";
+        return (int)err;
+    }
+
+    // Close handles; don't wait for child.
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+
+    // The child is now running independently.
+    return 0;
+}
