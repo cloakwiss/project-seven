@@ -8,7 +8,7 @@
 
 static thread_local HANDLE GlobalPipeHandle = INVALID_HANDLE_VALUE;
 static thread_local unsigned long GlobalCallDepth = 0;
-static thread_local unsigned long GlobalMaxCallDepth = 7;
+static thread_local unsigned long GlobalMaxCallDepth = 0;
 static thread_local std::ostringstream logs;
 static thread_local bool IsLoggingOn = false;
 

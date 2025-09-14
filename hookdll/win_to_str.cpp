@@ -2,7 +2,7 @@
 #define BASE_LOGGER_H
 
 #include "base_types.cpp"
-#include <iostream>
+
 /////////////////////////////// IMP SECTION //////////////////////////////////////////
 // Map constructs ----------------------------------------------------------------- //
 // BaseMap 
@@ -189,16 +189,16 @@ void register_base() {
 }
 
 
+
 // Main Abstraction --------------------------------------------- //
 template <typename T> 
 std::string BOIL(T value) {
-    std::cout << value << std::endl;
     auto it = baseMap.find(std::type_index(typeid(T)));
+
     if (it != baseMap.end()) {
-        std::cout << "found" << "\n";
-        return it->second(&value);  
+       return it->second(&value);
     } else {
-        std::cout << "NOT DECLARED!!!";
+        std::cout << std::type_index(typeid(T)).name() << " NOT DECLARED!!! \n ";
         return hexify(static_cast<uint8_t>(0));
     }
 }

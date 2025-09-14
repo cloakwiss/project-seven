@@ -93,6 +93,7 @@ ParseArgs(int argc, char *argv[], char **DllPath, char **ExecutablePath, bool *R
 int
 main(int argc, char *argv[]) {
 
+
     // Argument Parsing (I know this is finicky but ok for now) ----------//
     // This will not be done like this anyway, gui will takeover
     char *DllPath = nullptr;

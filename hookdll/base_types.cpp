@@ -19,26 +19,33 @@
 
 template <typename T>
 std::string hexify(T val) {
-    char buffer[19];
-    if (std::is_same<T, long>::value) {
-        snprintf(buffer, sizeof(buffer), "0x%016lX", val);
-    } else if (std::is_same<T, int32_t>::value) {
-        snprintf(buffer, sizeof(buffer), "0x%08X", val);
-    } else if (std::is_same<T, int64_t>::value) {
-        snprintf(buffer, sizeof(buffer), "0x%016llX", val);
-    } else if (std::is_same<T, uint8_t>::value) {
-        snprintf(buffer, sizeof(buffer), "0x%02X", val);
-    } else if (std::is_same<T, uint16_t>::value) {
-        snprintf(buffer, sizeof(buffer), "0x%04X", val);
-    } else if (std::is_same<T, uint32_t>::value) {
-        snprintf(buffer, sizeof(buffer), "0x%08X", val);
-    } else if (std::is_same<T, uint64_t>::value) {
-        snprintf(buffer, sizeof(buffer), "0x%016lX", val);
+    // Ensure it's an integral type
+    static_assert(std::is_integral<T>::value, "T must be an integral type");
+
+    char buffer[20];  
+    size_t type_size = sizeof(val);
+
+    if (type_size <= sizeof(uint8_t)) {
+        snprintf(buffer, sizeof(buffer), "0x%02X", static_cast<unsigned int>(val)); 
+    } else if (type_size <= sizeof(uint16_t)) {
+        snprintf(buffer, sizeof(buffer), "0x%04X", static_cast<unsigned int>(val));  
+    } else if (type_size <= sizeof(uint32_t)) {
+        snprintf(buffer, sizeof(buffer), "0x%08X", static_cast<unsigned int>(val));  
+    } else if (type_size <= sizeof(int32_t)) {
+        snprintf(buffer, sizeof(buffer), "0x%08X", static_cast<unsigned int>(val)); 
+    } else if (type_size <= sizeof(long)) {
+        snprintf(buffer, sizeof(buffer), "0x%08lX", static_cast<unsigned long>(val)); 
+    } else if (type_size <= sizeof(int64_t)) {
+        snprintf(buffer, sizeof(buffer), "0x%016llX", static_cast<unsigned long long>(val)); 
+    } else if (type_size <= sizeof(uint64_t)) {
+        snprintf(buffer, sizeof(buffer), "0x%016llX", static_cast<unsigned long long>(val));
     } else {
-        return "Unsupported type";
+        return "Hexify Error: Unsupported type"; 
     }
+
     return std::string(buffer);
 }
+
 
 std::string _hexify(unsigned long val) {
     #if defined(_WIN64) || defined(__x86_64__) 
@@ -55,7 +62,7 @@ std::string _hexify(unsigned long val) {
 template <typename T>
 T inspect(T* ptr) {
     if (ptr == nullptr) {
-        return 0;
+        return T{};
     }
     return *ptr;
 }
@@ -370,7 +377,6 @@ std::string BOIL_LPARAM( LPARAM val) {
 }
 
 std::string BOIL_LPBOOL( LPBOOL val) {
-    std::cout << "got" << "\n";
     return BOIL_BOOL(inspect(val));
 }
 
