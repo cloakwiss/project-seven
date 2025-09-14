@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "../builds/debug/detours/detours.h"
-#include "win_to_str.cpp"
+#include "./win_to_str.cpp"
 #include "./hook_utils.cpp"
 
 
@@ -16,23 +16,21 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 
 
 
-SEND_BEFORE_CALL({
-    logs << "[HOOK] MessageBoxA called.\n";
-    logs << "  hWnd: " << BOIL(hWnd) << "\n";
-    logs << "  lpText: " << BOIL(lpText) << "\n";
-    logs << "  lpCaption: " << BOIL(lpCaption) << "\n";
-    logs << "  uType: " << BOIL(uType) << "\n";
-})
-
+    SEND_BEFORE_CALL({
+        logs << "[HOOK] MessageBoxA called.\n";
+        logs << "  hWnd: " << BOIL(hWnd) << "\n";
+        logs << "  lpText: " << BOIL(lpText) << "\n";
+        logs << "  lpCaption: " << BOIL(lpCaption) << "\n";
+        logs << "  uType: " << BOIL(uType) << "\n";
+    })
 
     int result = TrueMessageBoxA(hWnd, lpText, lpCaption, uType);
 
-
-SEND_AFTER_CALL({
-    logs << "MessageBoxA returned: \n";
-    logs << "  result: " << BOIL(result) << "\n";
-    logs << "  (Time: 0ms)\n";
-})
+    SEND_AFTER_CALL({
+        logs << "MessageBoxA returned: \n";
+        logs << "  result: " << BOIL(result) << "\n";
+        logs << "  (Time: 0ms)\n";
+    })
 
 
     return result;
@@ -59,8 +57,7 @@ HookedCreateProcessA(LPCSTR lpApplicationName, LPSTR lpCommandLine,
         logs << "  lpCommandLine: " << BOIL(lpCommandLine) << "\n";
         logs << "  bInheritHandles: " << BOIL(bInheritHandles) << "\n";
         logs << "  dwCreationFlags: 0x" << BOIL(dwCreationFlags) << "\n";
-        logs << "  lpCurrentDirectory: " << BOIL(lpCurrentDirectory)
-             << "\n";
+        logs << "  lpCurrentDirectory: " << BOIL(lpCurrentDirectory) << "\n";
     })
 
     BOOL result = TrueCreateProcessA(
