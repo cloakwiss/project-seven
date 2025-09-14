@@ -80,10 +80,17 @@ ParseArgs(int argc, char *argv[], char **DllPath, char **ExecutablePath, bool *R
     }
 
     // Must have both DLL and Executable unless help was requested
-    if (*DllPath == nullptr || *ExecutablePath == nullptr || needHelp) {
-        PrintUsage();
-        return 1;
-    }
+	if (*Remove) {
+		if (*ExecutablePath == nullptr || needHelp) {
+			PrintUsage();
+			return 1;
+		}
+	} else {
+		if (*DllPath == nullptr || *ExecutablePath == nullptr || needHelp) {
+			PrintUsage();
+			return 1;
+		}
+	}
 
     return 0;
 }
@@ -93,9 +100,12 @@ ParseArgs(int argc, char *argv[], char **DllPath, char **ExecutablePath, bool *R
 int
 main(int argc, char *argv[]) {
 
-
     // Argument Parsing (I know this is finicky but ok for now) ----------//
     // This will not be done like this anyway, gui will takeover
+    //
+    //
+    // Future me: Gui Will not take over this but use this, I am sad, please
+    // don't do this ever again. Not like this.
     char *DllPath = nullptr;
     char *ExecutablePath = nullptr;
     bool Remove = false;
@@ -111,70 +121,68 @@ main(int argc, char *argv[]) {
     // the issue of not being able to do
     // blocking tasks in DllMain
     if (InjectHookDll(DllPath, ExecutablePath, Remove)) {
-        std::cerr << "Injecting/Dejecting the Hook Failed.\n";
+        std::cerr << "Injecting/Removing the Hook Failed.\n";
         return 1;
     }
 
-
-
+    // Anything Below this is legacy and should not be used but is present for  //
+    // documentation purpose -------------------------------------------------- //
+	//
     // Pipe Creation ---------------------------------------------------------- //
-    HANDLE Pipe = CreateNamedPipeA("\\\\.\\pipe\\DataPipe", // Pipe Name
-                                   PIPE_ACCESS_INBOUND,     // Access Type
-                                   PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, // Config
-                                   1, 256, 256, // InstanceCount, OutBuffSize, InBuffSize
-                                   0, NULL);    // Timeout, SecurityAttributes
-
-    if (Pipe == INVALID_HANDLE_VALUE) {
-        std::cerr << "Failed to create pipe\n";
-        return 1;
-    }
+    // HANDLE Pipe = CreateNamedPipeA("\\\\.\\pipe\\DataPipe", // Pipe Name
+    //                                PIPE_ACCESS_INBOUND,     // Access Type
+    //                                PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, //
+    //                                Config 1, 256, 256, // InstanceCount, OutBuffSize, InBuffSize
+    //                                0, NULL);    // Timeout, SecurityAttributes
+    //
+    // if (Pipe == INVALID_HANDLE_VALUE) {
+    //     std::cerr << "Failed to create pipe\n";
+    //     return 1;
+    // }
+	//
     // Pipe Creation ---------------------------------------------------------- //
-
-    STARTUPINFOA StartupInfo = {};
-    PROCESS_INFORMATION ProcessInfo = {};
-    StartupInfo.cb = sizeof(StartupInfo);
-
-    if (!CreateProcessA(ExecutablePath,            // Need to make it more robust
-                        0, 0, 0, 0,                // by adding arguments, more options
-                        CREATE_DEFAULT_ERROR_MODE | CREATE_SUSPENDED, //
-                        0, 0,                      //
-                        &StartupInfo, &ProcessInfo)) {
-
-        std::cerr << "Failed to launch process. Error: " << GetLastError() << "\n";
-        return 1;
-    }
-
-	ResumeThread(ProcessInfo.hThread);
-
-	// NEEDS TO BE MUCH LARGER LIKE 1 MB OR SOMETHING. CLEARLY NOT GOING TO USE THIS, WILL BE IN
-	// DIFFERENT LANGUAGE ALTOGETHER
-	char buffer[2048];
-
-    // No need to wait if there is no hook;
-    if (!Remove) {
-        std::cout << "Waiting for Hook DLL...\n";
-        if (ConnectNamedPipe(Pipe, NULL)) {
-
-            DWORD bytesRead;
-
-            std::cout << "{\n";
-            unsigned long i = 0;
-            while (ReadFile(Pipe, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead > 0) {
-                // std::cout << "[Program] Received hook text: \n" << buffer << "\n";
-                std::cout << "\"" << i++ << "\":" << buffer << ",\n";
-            }
-            std::cout << "}\n";
-
-            CloseHandle(Pipe);
-        } else {
-
-            std::cout << "The pipe didn't connect for some reason\n";
-        }
-    }
-
-
-    WaitForSingleObject(ProcessInfo.hProcess, INFINITE);
-    CloseHandle(ProcessInfo.hThread);
-    CloseHandle(ProcessInfo.hProcess);
+	//
+    //  STARTUPINFOA StartupInfo = {};
+    //  PROCESS_INFORMATION ProcessInfo = {};
+    //  StartupInfo.cb = sizeof(StartupInfo);
+    //
+    //  if (!CreateProcessA(ExecutablePath,            // Need to make it more robust
+    //                      0, 0, 0, 0,                // by adding arguments, more options
+    //                      CREATE_DEFAULT_ERROR_MODE, //
+    //                      0, 0,                      //
+    //                      &StartupInfo, &ProcessInfo)) {
+    //
+    //      std::cerr << "Failed to launch process. Error: " << GetLastError() << "\n";
+    //      return 1;
+    //  }
+    //
+    //  // No need to wait if there is no hook;
+    //  if (!Remove) {
+    //      std::cout << "Waiting for Hook DLL...\n";
+    //      if (ConnectNamedPipe(Pipe, NULL)) {
+    //
+    //          char buffer[256];
+    //          DWORD bytesRead;
+    //
+    // std::cout << "{\n";
+    // unsigned long i = 0;
+    //          while (ReadFile(Pipe, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead > 0) {
+    //              // std::cout << "[Program] Received hook text: \n" << buffer << "\n";
+    //              std::cout << "\"" << i++ << "\":" << buffer << ",\n";
+    //          }
+    // std::cout << "}\n";
+    //
+    //          CloseHandle(Pipe);
+    //      } else {
+    //
+    //          std::cout << "The pipe didn't connect for some reason\n";
+    //      }
+    //  }
+    //
+    //
+    //  WaitForSingleObject(ProcessInfo.hProcess, INFINITE);
+    //  CloseHandle(ProcessInfo.hThread);
+    //  CloseHandle(ProcessInfo.hProcess);
+	
     return 0;
 }

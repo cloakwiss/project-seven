@@ -107,17 +107,10 @@ function Build-HookDLL
 function Build-Core
 {
 	Log "Building Core ($Config)..."
-	$hookdll_path = "./builds/" + $Config + "/hook.dll"
-	if (Test-Path $hookdll_path)
-	{
-	} else
-	{
-		ErrorExit "Hook dll not found, can't compile"
-	}
 
 	$rel_path_prefix = "../../"
 
-	$file_path = "core/main.cpp"
+	$file_path = "injectdll/main.cpp"
 
 	$compile_path = "builds/" + $Config
 	New-Item -ItemType Directory -Path $compile_path -Force

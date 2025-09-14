@@ -1,16 +1,17 @@
 param(
+	[Alias("i")]
+	[switch]$BuildInjectDLL,
+
 	[Alias("hd")]
 	[switch]$BuildHookDLL,
 
-	[Alias("t")]
-	[string]$SampleTargetName,
+	[Alias("d")]
+	[switch]$DoNotRun,
 
 	[Alias("h")]
 	[switch]$Help
 )
 
-Write-Host "Building Core..."
-./scripts/build.ps1 -c debug -t core
 
 function Show-Help
 {
@@ -18,14 +19,16 @@ function Show-Help
 Usage: run.ps1 [options]
 
 Options:
+  -i           Build the Hook Injector Executable
   -hd          Build HookDLL component
-  -t <name>    Specify sample target executable name under ./builds/debug/sample_targets/
+  -d           Do not run the ui
   -h,          Display this help message   
 
 Examples:
-  .\run.ps1                     # Builds core
-  .\run.ps1 -hd -t target.exe   # Build Core and HookDLL and run target.exe
-  .\run.ps1 -t target.exe       # Build Core and Run target.exe
+  .\run.ps1 -i                  # Build the Hook Injector Executable and run UI
+  .\run.ps1 -hd                 # Build HookDLL and run UI
+  .\run.ps1 -i -d               # Build the Hook Injector Executable and don't run UI
+  .\run.ps1 -hd -d              # Build HookDLL and don't run UI
 "@
 }
 
@@ -36,23 +39,11 @@ if ($Help)
 	exit 0
 }
 
-if (-not ($BuildHookDLL -or $PSBoundParameters.ContainsKey('SampleTargetName')))
-{
-	Write-Host "Available Samples are: "
-	Get-ChildItem "./builds/debug/samples/" -File |
-		Select-Object -ExpandProperty BaseName |
-		Sort-Object -Unique |
-		ForEach-Object { Write-Host " - $_" }
-	Show-Help
-	exit 1
-}
 
-if ($PSBoundParameters.ContainsKey('SampleTargetName'))
+if ($BuildInjectDLL)
 {
-	if ([string]::IsNullOrEmpty($SampleTargetName))
-	{
-		throw "Error: SampleTargetName (-t) was provided but is empty. Use -h for more usage information"
-	}
+	Write-Host "Building InjectDll..."
+	./scripts/build.ps1 -c debug -t core
 }
 
 if ($BuildHookDLL)
@@ -61,40 +52,9 @@ if ($BuildHookDLL)
 	./scripts/build.ps1 -c debug -t hookdll
 }
 
-if ($PSBoundParameters.ContainsKey('SampleTargetName'))
+if (!$DoNotRun)
 {
-	$core_path = "./builds/debug/main.exe"
-	$hookdll_path = "./builds/debug/hook.dll"
-	$sample_target_path = "./builds/debug/samples/$SampleTargetName.exe"
-
-	if (Test-Path -IsValid $hookdll_path)
-	{
-		if (Test-Path -IsValid $sample_target_path)
-		{
-			$sample_target_path = "-e:" + $sample_target_path
-			$hookdll_path = "-d:" + $hookdll_path
-
-			Write-Host "Running with target executable: $sample_target_path"
-			& $core_path $sample_target_path $hookdll_path
-		} else
-		{
-			Write-Host "SampleTargetName specified is not available:"
-			Write-Host "Available Samples are: "
-			Get-ChildItem "./builds/debug/samples/" -File |
-				Select-Object -ExpandProperty BaseName |
-				Sort-Object -Unique |
-				ForEach-Object { Write-Host " - $_" }
-		}
-	} else
-	{
-		Write-Host "Hook dll is not available"
-	}
-} else
-{
-	Write-Host "SampleTargetName (-t) not specified; showing available samples:`n"
-	Write-Host "Available Samples are: "
-	Get-ChildItem "./builds/debug/samples/" -File |
-		Select-Object -ExpandProperty BaseName |
-		Sort-Object -Unique |
-		ForEach-Object { Write-Host " - $_" }
+	Push-Location "ui"
+	go run .
+	Pop-Location
 }

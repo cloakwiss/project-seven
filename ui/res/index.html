@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<title>File Picker Example</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+	<div class="main-container">
+		<!-- Control Panel -->
+		<div class="control-panel">
+			<h2>Control Panel</h2>
+
+			<div class="input-group">
+				<label for="target_path">Target Executable</label>
+				<input type="text" id="target_path" placeholder="Selected target executable path will appear here"
+					readonly>
+			</div>
+
+			<div class="input-group">
+				<label for="hookdll_path">Hook DLL</label>
+				<input type="text" id="hookdll_path" placeholder="Selected hookdll will appear here" readonly>
+			</div>
+
+			<div class="button-group">
+				<button id="target_pick">Pick Target</button>
+				<button id="hookdll_pick">Pick Hookdll</button>
+				<button id="spawnp7">Start</button>
+			</div>
+
+
+		</div>
+
+		<!-- Data Panes Area -->
+		<div class="data-area">
+			<div class="panes-container">
+				<div class="data-pane">
+					<h3>Console Output</h3>
+					<textarea class="data-content" id="console-output" readonly>
+					</textarea>
+				</div>
+
+				<!-- <div class="data-pane"> -->
+				<!-- 	<h3>Process Monitor</h3> -->
+				<!-- 	<div class="data-content" id="process-monitor"> -->
+				<!-- 		No processes detected... -->
+				<!-- 	</div> -->
+				<!-- </div> -->
+
+				<div class="data-pane">
+					<h3>Hook Status</h3>
+					<textarea class="data-content" id="hook-status">
+					</textarea>
+				</div>
+
+				<!-- <div class="data-pane"> -->
+				<!-- 	<h3>System Log</h3> -->
+				<!-- 	<div class="data-content" id="system-log"> -->
+				<!-- 		System ready... -->
+				<!-- 	</div> -->
+				<!-- </div> -->
+			</div>
+		</div>
+	</div>
+
+	<script src="script.js"></script>
+</body>
+
+</html>

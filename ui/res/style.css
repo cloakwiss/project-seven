@@ -1,0 +1,286 @@
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body {
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	height: 100vh;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	/* padding: 20px; */
+}
+
+.main-container {
+	display: flex;
+	width: 100%;
+	height: 100%;
+	background: rgba(255, 255, 255, 0.95);
+	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+	backdrop-filter: blur(10px);
+	overflow: hidden;
+}
+
+/* Control Panel */
+.control-panel {
+	flex: 0 0 250px;
+	background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+	padding: 15px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	color: white;
+}
+
+.control-panel h2 {
+	font-size: 14px;
+	margin-bottom: 5px;
+	color: #ecf0f1;
+	text-align: center;
+	padding-bottom: 7px;
+	border-bottom: 2px solid #3498db;
+}
+
+.input-group {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.input-group label {
+	font-size: 12px;
+	font-weight: 600;
+	color: #bdc3c7;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+#target_path, #hookdll_path {
+	width: 100%;
+	padding: 5px 5px;
+	border: 2px solid #34495e;
+	background: #2c3e50;
+	color: #ecf0f1;
+	font-size: 12px;
+	transition: all 0.3s ease;
+}
+
+#target_path:focus, #hookdll_path:focus {
+	outline: none;
+	border-color: #3498db;
+	box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.button-group {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 7px;
+	margin-top: 7px;
+}
+
+button {
+	width: 75%;
+	padding: 7px 10px;
+	border: none;
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+#target_pick, #hookdll_pick {
+	background: linear-gradient(135deg, #3498db, #2980b9);
+	color: white;
+}
+
+#target_pick:hover, #hookdll_pick:hover {
+	background: linear-gradient(135deg, #2980b9, #21618c);
+	transform: translateY(-2px);
+	box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+}
+
+#spawnp7 {
+	background: linear-gradient(135deg, #27ae60, #229954);
+	color: white;
+	margin-top: 20px;
+	padding: 8px 10px;
+	font-size: 14px;
+}
+
+#spawnp7:hover {
+	background: linear-gradient(135deg, #229954, #1e8449);
+	transform: translateY(-2px);
+	box-shadow: 0 8px 20px rgba(39, 174, 96, 0.3);
+}
+
+/* Data Panes Area */
+.data-area {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	padding: 2px;
+	gap: 5px;
+}
+
+.panes-container {
+	flex: 1;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+}
+
+.data-pane {
+	flex: 1;
+	min-width: 40%;
+	background: #a8b8fa;
+	border: 2px solid #e9ecef;
+	padding: 5px;
+	display: flex;
+	flex-direction: column;
+	transition: all 0.3s ease;
+	max-width: 50%;
+    max-height: 100vh;
+}
+
+
+.data-pane:hover {
+	border-color: #3498db;
+	box-shadow: 0 8px 25px rgba(52, 152, 219, 0.1);
+}
+
+.data-pane h3 {
+	font-size: 13px;
+	color: #2c3e50;
+	margin-bottom: 2px;
+	padding-bottom: 2px;
+}
+
+.data-content {
+    flex: 1;
+    background: white;
+    padding: 5px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    line-height: 1;
+    color: #2c3e50;
+    border: 1px solid #dee2e6;
+
+    /* Already present */
+    overflow-y: auto;
+
+    /* Add these: */
+    overflow-x: auto;      /* enable horizontal scroll if needed */
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+	.main-container {
+		flex-direction: column;
+		height: 90vh;
+	}
+
+	.control-panel {
+		flex: 0 0 auto;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 15px;
+		padding: 20px;
+	}
+
+	.input-group {
+		flex: 1;
+		min-width: 200px;
+	}
+
+	.button-group {
+		flex-direction: row;
+		align-items: flex-end;
+		gap: 10px;
+	}
+
+	.panes-container {
+		flex-direction: column;
+	}
+
+	.data-pane {
+		min-width: auto;
+	}
+}
+
+@media (max-width: 768px) {
+	.control-panel {
+		flex-direction: column;
+	}
+
+	.button-group {
+		flex-direction: column;
+	}
+}
+
+
+/* Styles for the table itself */
+.table-styled {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: Arial, sans-serif;
+  color: #333;
+}
+
+/* Header styles */
+.table-styled thead th {
+  background-color: #4A90E2;       /* nice blue header */
+  color: white;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 14px;
+  position: sticky;
+  top: 0;                          /* so header stays visible on vertical scroll */
+  z-index: 2;                     /* ensure header sits above rows */
+}
+
+/* Cells */
+.table-styled tbody td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #ddd;
+  font-size: 13px;
+}
+
+/* Alternating row (zebra) */
+.table-styled tbody tr:nth-child(odd) {
+  background-color: #f9f9f9;
+}
+
+.table-styled tbody tr:nth-child(even) {
+  background-color: #ffffff;
+}
+
+/* Hover effect on rows */
+.table-styled tbody tr:hover {
+  background-color: #eef6fc;
+}
+
+/* Optional: style first column differently */
+.table-styled tbody td:first-child {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+/* Optional: Make table responsive/horizontally scrollable inside a container */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  /* add padding or margin as needed */
+}
+
+
+textarea {
+  text-align: left;
+  direction: ltr;
+ 
+}

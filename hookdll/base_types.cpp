@@ -71,17 +71,14 @@ inspect(T *ptr) {
 // Functions to handle different types -------------------------------------------- //
 
 // Dependent base_functions ------------------------------------------------------- //
-// std::wstring 
+// std::wstring
 // BOIL_WCHAR(WCHAR val);
 
-std::string
-BOIL_CCHAR(CCHAR val);
+std::string BOIL_CCHAR(CCHAR val);
 
-std::string
-BOIL_CHAR(CHAR val);
+std::string BOIL_CHAR(CHAR val);
 
-std::string
-BOIL_HANDLE(HANDLE val);
+std::string BOIL_HANDLE(HANDLE val);
 
 // ------------------------------------------------------------------------------- //
 
@@ -111,11 +108,11 @@ BOIL_BYTE(BYTE val) {
 // with C
 std::string
 BOIL_CCHAR(CCHAR val) {
-    std::string str(1,val);
+    std::string str(1, val);
     return str;
 }
 
-std::string 
+std::string
 BOIL_CHAR(CHAR val) {
     std::string str(1, val);
     return str;
@@ -717,7 +714,8 @@ BOIL_PLONG64(PLONG64 val) {
 }
 
 
-std::string BOIL_QWORD(QWORD val){
+std::string
+BOIL_QWORD(QWORD val) {
     return hexify(val);
 }
 
@@ -747,11 +745,11 @@ BOIL_SSIZE_T(SSIZE_T val) {
     return BOIL_LONG_PTR(val);
 }
 
-//with T
-// std::wstring
-// BOIL_TBYTE(TBYTE val) {
-//     return BOIL_WCHAR(val);
-// }
+// with T
+//  std::wstring
+//  BOIL_TBYTE(TBYTE val) {
+//      return BOIL_WCHAR(val);
+//  }
 
 // std::wstring
 // BOIL_TCHAR(TCHAR val) {
