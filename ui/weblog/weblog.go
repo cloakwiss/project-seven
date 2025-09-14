@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"ui_server/doman"
+	"ui/doman"
 
 	"github.com/webview/webview_go"
 )
@@ -25,7 +25,6 @@ type Logger struct {
 }
 
 func NewLogger(w *webview.WebView) Logger {
-	// doman.InsertTextById(ConsoleId, "", w)
 	return Logger{w}
 }
 

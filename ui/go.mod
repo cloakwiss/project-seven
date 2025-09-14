@@ -1,4 +1,4 @@
-module ui_server
+module ui
 
 go 1.25.0
 
@@ -8,7 +8,7 @@ require (
 )
 
 require (
-	github.com/Microsoft/go-winio v0.6.2 // indirect
+	github.com/Microsoft/go-winio v0.6.2 // direct
 	github.com/TheTitanrain/w32 v0.0.0-20180517000239-4f5cfb03fabf // indirect
 	golang.org/x/sys v0.10.0 // indirect
 )

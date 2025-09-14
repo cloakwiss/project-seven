@@ -17,11 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
   
-  var isStarted = false
   document.getElementById("spawnp7").addEventListener("click", async() => {
-	if (!isStarted) {
-		await window.SpawnP7();
-		isStarted = true;
-	}
+	await window.SpawnP7();
   });
 });

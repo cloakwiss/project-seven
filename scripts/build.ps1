@@ -107,13 +107,6 @@ function Build-HookDLL
 function Build-Core
 {
 	Log "Building Core ($Config)..."
-	$hookdll_path = "./builds/" + $Config + "/hook.dll"
-	if (Test-Path $hookdll_path)
-	{
-	} else
-	{
-		ErrorExit "Hook dll not found, can't compile"
-	}
 
 	$rel_path_prefix = "../../"
 

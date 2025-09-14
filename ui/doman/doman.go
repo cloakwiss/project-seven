@@ -29,7 +29,16 @@ func InsertTextById(id string, text string, w *webview.WebView) {
 
 func AppendTextById(id string, text string, w *webview.WebView) {
 	js := fmt.Sprintf(`document.getElementById('%s').value += %q;`, id, text)
+	scrollTop := fmt.Sprintf(
+		`
+		var textarea = document.getElementById('%s');
+		textarea.scrollTop = textarea.scrollHeight;
+		`,
+		id,
+	)
+
 	(*w).Dispatch(func() {
 		(*w).Eval(js)
+		(*w).Eval(scrollTop)
 	})
 }

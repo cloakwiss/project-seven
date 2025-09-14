@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"os/exec"
 
-	"ui_server/weblog"
+	"ui/app"
 )
 
 const InjecterEXE string = "../builds/debug/main.exe"
 
-func InjectDLL(wlog weblog.Logger, TargetPath string, HookdllPath string) {
-	HookdllPath = fmt.Sprintf("-d%s", HookdllPath)
-	TargetPath = fmt.Sprintf("-e%s", TargetPath)
+func InjectDLL(p7 *app.ApplicationState) {
+	HookdllPath := fmt.Sprintf("-d%s", p7.HookDllPath)
+	TargetPath := fmt.Sprintf("-e%s", p7.TargetPath)
 
 	spawn := exec.Command(
 		InjecterEXE,
@@ -20,14 +20,14 @@ func InjectDLL(wlog weblog.Logger, TargetPath string, HookdllPath string) {
 	)
 
 	output, err := spawn.CombinedOutput()
-	wlog.Info("InjectDLL Output: \n%s", output)
+	p7.Log.Info("InjectDLL Output: \n%s", output)
 	if err != nil {
-		wlog.Fatal("InjectDLL Spawn Failed for some reason %v", err)
+		p7.Log.Fatal("InjectDLL Spawn Failed for some reason %v", err)
 	}
 }
 
-func RemoveDLL(wlog weblog.Logger, TargetPath string) {
-	TargetPath = fmt.Sprintf("-e%s", TargetPath)
+func RemoveDLL(p7 *app.ApplicationState) {
+	TargetPath := fmt.Sprintf("-e%s", p7.TargetPath)
 	spawn := exec.Command(
 		InjecterEXE,
 		TargetPath,
@@ -35,8 +35,8 @@ func RemoveDLL(wlog weblog.Logger, TargetPath string) {
 	)
 
 	output, err := spawn.CombinedOutput()
-	wlog.Info("RemoveDLL Output: \n%s", output)
+	p7.Log.Info("RemoveDLL Output: \n%s", output)
 	if err != nil {
-		wlog.Fatal("RemoveDLL Spawn Failed for some reason %v", err)
+		p7.Log.Fatal("RemoveDLL Spawn Failed for some reason %v", err)
 	}
 }

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"log"
 	"fmt"
+	"log"
 	"net/http"
 	"path/filepath"
 	// "syscall"
@@ -10,9 +10,10 @@ import (
 	// "time"
 	// "strings"
 
-	// "ui_server/doman"
-	"ui_server/weblog"
-	"ui_server/p7"
+	// "ui/doman"
+	"ui/app"
+	"ui/core"
+	"ui/weblog"
 
 	"github.com/sqweek/dialog"
 	"github.com/webview/webview_go"
@@ -32,61 +33,79 @@ func pickFile() (string, error) {
 
 	return abs, nil
 }
+
 // ---------------------------------------------------------------------------------------------- //
 
 func main() {
+
+	p7 := app.ApplicationState{
+		Title:         "P7",
+		IsCoreRunning: false,
+		Port:          "42069",
+		Page:          app.IndexPage,
+		Ui:            webview.New(true),
+	}
+	defer p7.Ui.Destroy()
+
+	p7.Log = weblog.NewLogger(&p7.Ui)
+	p7.Ui.SetTitle(p7.Title)
+
+	const Url = "http://localhost:"
+
 	// Hosting the ui ----------------------------------------------------------------------------- //
 	fs := http.FileServer(http.Dir("./res"))
-	addr := ":42069"
-
 	go func() {
-		fmt.Printf("Serving static files on http://localhost%s\n", addr)
-		if err := http.ListenAndServe(addr, fs); err != nil {
+		fmt.Printf("Serving static files on %s%s\n", Url, p7.Port)
+		if err := http.ListenAndServe(":"+p7.Port, fs); err != nil {
 			log.Fatal(err)
 		}
 	}()
 	// -------------------------------------------------------------------------------------------- //
 
-	// Webview setup ------------------------------------------------------------------------------ //
-	w := webview.New(true)
-	defer w.Destroy()
+	// Navigating to the MainPage ----------------------------------------------------------------- //
 
-	w.SetTitle("P7")
+	page := fmt.Sprintf("%s%s/%s", Url, p7.Port, p7.Page)
+	p7.Ui.Navigate(page)
 
-	w.Navigate("http://localhost:42069/index.html")
-
-	var TargetPath, HookdllPath string
 	// -------------------------------------------------------------------------------------------- //
 
 	// Log to the ui console not the stdout/stderr
-	wlog := weblog.NewLogger(&w)
-	wlog.Debug("Logger Initialized")
+	p7.Log.Debug("Ui Started")
 
 	// Binds for handling interactions fromt the client side -------------------------------------- //
-	w.Bind("PickTarget", func() (string, error) {
+	p7.Ui.Bind("PickTarget", func() (string, error) {
 		path, err := pickFile()
 		if err != nil {
-			wlog.Error("TargetPicking is not going well for some reason. %v", err)
+			p7.Log.Error("TargetPicking is not going well for some reason. %v", err)
 		}
 
-		wlog.Info("The Target Path is: %s", path)
-		TargetPath = path
+		p7.Log.Info("The Target Path is: %s", path)
+		p7.TargetPath = path
 		return path, err
 	})
 
-	w.Bind("PickHookdll", func() (string, error) {
+	p7.Ui.Bind("PickHookdll", func() (string, error) {
 		path, err := pickFile()
 		if err != nil {
-			wlog.Error("HookdllPicking is not going well for some reason: %v", err)
+			p7.Log.Error("HookdllPicking is not going well for some reason: %v", err)
 		}
 
-		wlog.Info("The Hookdll Path is: %s", path)
-		HookdllPath = path
+		p7.Log.Info("The Hookdll Path is: %s", path)
+		p7.HookDllPath = path
 		return path, err
 	})
 
-	w.Bind("SpawnP7", func() {
-		go p7.Spawn(wlog, TargetPath, HookdllPath, &w)
+	p7.Ui.Bind("SpawnP7", func() {
+		if p7.TargetPath != "" && p7.HookDllPath != "" {
+			if !p7.IsCoreRunning {
+				p7.IsCoreRunning = true
+				go core.Launch(&p7)
+			} else {
+				p7.Log.Error("Already Running a P7 instance.")
+			}
+		} else {
+			p7.Log.Fatal("Target Path and HookDll path is empty.")
+		}
 	})
 	// -------------------------------------------------------------------------------------------- //
 
@@ -130,6 +149,6 @@ func main() {
 	// id := "system-log"
 	// doman.InsertHtmlById(id, tble, &w)
 
-	w.Run()
+	p7.Ui.Run()
 	// -------------------------------------------------------------------------------------------- //
 }

@@ -1,20 +1,20 @@
-package p7
+package core
 
 import (
 	"bufio"
 	"context"
 	"fmt"
 	"os/exec"
+	"runtime"
 
-	"ui_server/doman"
-	"ui_server/inject"
-	"ui_server/weblog"
+	"ui/app"
+	"ui/doman"
+	"ui/inject"
 
 	"github.com/Microsoft/go-winio"
-	"github.com/webview/webview_go"
 )
 
-func handleClient(wlog weblog.Logger, conn any, w *webview.WebView) {
+func handleClient(p7 *app.ApplicationState, conn any) {
 
 	defer func() {
 		if c, ok := conn.(interface{ Close() error }); ok {
@@ -24,7 +24,7 @@ func handleClient(wlog weblog.Logger, conn any, w *webview.WebView) {
 
 	reader, ok := conn.(interface{ Read([]byte) (int, error) })
 	if !ok {
-		wlog.Error("Invalid connection type")
+		p7.Log.Error("Invalid connection type")
 		return
 	}
 
@@ -34,22 +34,22 @@ func handleClient(wlog weblog.Logger, conn any, w *webview.WebView) {
 		text := scanner.Text()
 
 		html := fmt.Sprintf("\"%d\": %s\n", i, text)
-		doman.AppendTextById("hook-status", html, w)
+		doman.AppendTextById("hook-status", html, &p7.Ui)
 
 		i += 1
 	}
 
 	if err := scanner.Err(); err != nil {
-		wlog.Error("Read error: %v", err)
+		p7.Log.Error("Read error: %v", err)
 	}
 }
 
 // ---------------------------------------------------------------------------------------------- //
 
 // Spawning the core system --------------------------------------------------------------------- //
-func Spawn(wlog weblog.Logger, TargetPath string, HookdllPath string, w *webview.WebView) {
-	inject.InjectDLL(wlog, TargetPath, HookdllPath)
-	defer inject.RemoveDLL(wlog, TargetPath)
+func Launch(p7 *app.ApplicationState) {
+	inject.InjectDLL(p7)
+	defer inject.RemoveDLL(p7)
 
 	pipeName := `\\.\pipe\DataPipe`
 
@@ -64,19 +64,20 @@ func Spawn(wlog weblog.Logger, TargetPath string, HookdllPath string, w *webview
 
 	listener, err := winio.ListenPipe(pipeName, pipeCfg)
 	if err != nil {
-		wlog.Fatal("Failed to create pipe: %v", err)
+		p7.Log.Fatal("Failed to create pipe: %v", err)
 	}
 	defer listener.Close()
 
-	wlog.Info("Waiting for Hook DLL...")
+	p7.Log.Info("Waiting for Hook DLL...")
 
 	go func() {
-		spawn := exec.Command(TargetPath)
+		runtime.LockOSThread()
+		spawn := exec.Command(p7.TargetPath)
 		output, err := spawn.CombinedOutput()
 
-		wlog.Info("Target Output:\n%s\n", output)
+		p7.Log.Info("Target Output:\n%s\n", output)
 		if err != nil {
-			wlog.Fatal("Target Spawn Failed for some reason %v", err)
+			p7.Log.Fatal("Target Spawn Failed for some reason %v", err)
 		}
 
 		cancel()
@@ -86,14 +87,15 @@ func Spawn(wlog weblog.Logger, TargetPath string, HookdllPath string, w *webview
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
-				wlog.Info("Listener stopped: %v", err)
+				p7.Log.Info("Listener stopped: %v", err)
 				return
 			}
 
-			handleClient(wlog, conn, w)
+			handleClient(p7, conn)
 		}
 	}()
 
 	// Let server run until killed
 	<-ctx.Done()
+	p7.IsCoreRunning = false
 }
