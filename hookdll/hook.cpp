@@ -5,7 +5,7 @@
 #include <iostream>
 
 #include "../builds/debug/detours/detours.h"
-#include "./base_overloads.cpp"
+#include "./win_to_str.cpp"
 #include "./hook_utils.cpp"
 
 
@@ -16,14 +16,14 @@ static int WINAPI
 HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 
 
-
     SEND_BEFORE_CALL({
+        SendToServer("\"Hello\"\n");
         start_json_before("MessageBoxA");
-
         log_fields("hWnd", BOIL(hWnd));
         log_fields("lpText", BOIL(lpText));
         log_fields("lpCaption", BOIL(lpCaption));
         log_fields("uType", BOIL(uType), true);
+		SendToServer("\"Hello2\"\n");
     })
 
     int result;
@@ -33,6 +33,7 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
         start_json_after("MessageBoxA");
         log_fields("result", BOIL(result), true);
     })
+
 
     return result;
 }
@@ -54,12 +55,11 @@ HookedCreateProcessA(LPCSTR lpApplicationName, LPSTR lpCommandLine,
 
     SEND_BEFORE_CALL({
         logs << "[HOOK] CreateProcessA called.\n";
-        logs << "  lpApplicationName: " << (lpApplicationName ? lpApplicationName : "NULL") << "\n";
-        logs << "  lpCommandLine: " << (lpCommandLine ? lpCommandLine : "NULL") << "\n";
-        logs << "  bInheritHandles: " << bInheritHandles << "\n";
-        logs << "  dwCreationFlags: 0x" << std::hex << dwCreationFlags << std::dec << "\n";
-        logs << "  lpCurrentDirectory: " << (lpCurrentDirectory ? lpCurrentDirectory : "NULL")
-             << "\n";
+        logs << "  lpApplicationName: " << BOIL(lpApplicationName) << "\n";
+        logs << "  lpCommandLine: " << BOIL(lpCommandLine) << "\n";
+        logs << "  bInheritHandles: " << BOIL(bInheritHandles) << "\n";
+        logs << "  dwCreationFlags: 0x" << BOIL(dwCreationFlags) << "\n";
+        logs << "  lpCurrentDirectory: " << BOIL(lpCurrentDirectory) << "\n";
     })
 
     BOOL result = TrueCreateProcessA(
@@ -298,7 +298,9 @@ HookedWriteProcessMemory(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer
 __declspec(dllexport) BOOL APIENTRY
 DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
+
     if (reason == DLL_PROCESS_ATTACH) {
+		register_base();
 
         DetourRestoreAfterWith();
         DetourTransactionBegin();
@@ -322,8 +324,8 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         DetourAttach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
         OutputDebugStringA("attached VirtualAlloc");
 
-        DetourAttach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
-        OutputDebugStringA("attached VirtualProtect");
+        // DetourAttach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
+        // OutputDebugStringA("attached VirtualProtect");
 
         DetourAttach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
         OutputDebugStringA("attached Sleep");
@@ -364,7 +366,7 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         DetourDetach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
         DetourDetach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
         DetourDetach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
-        DetourDetach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
+        // DetourDetach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
         DetourDetach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
         DetourDetach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
         DetourDetach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);

@@ -9,7 +9,7 @@
 
 static thread_local HANDLE GlobalPipeHandle = INVALID_HANDLE_VALUE;
 static thread_local unsigned long GlobalCallDepth = 0;
-static thread_local unsigned long GlobalMaxCallDepth = 7;
+static thread_local unsigned long GlobalMaxCallDepth = 0;
 static thread_local std::ostringstream logs;
 static thread_local bool IsLoggingOn = false;
 static thread_local int64_t PerfCounterFrequency;
@@ -30,7 +30,9 @@ SendToServer(const char *text) {
         }
     }
 
+	std::cout << "Runing: I got : " << text << "\n";
     DWORD bytesWritten = 0;
+	std::cout << "Runing: I size : " << strlen(text) << "\n";
     WriteFile(GlobalPipeHandle, text, (DWORD)strlen(text) + 1, &bytesWritten, NULL);
 }
 
@@ -65,7 +67,7 @@ log_fields(const std::string &key, std::string val, bool last = false) {
 
 static void
 end_json() {
-    logs << "  }\n"; // close returns
+    logs << "  }\n";
     logs << "}\n";
 }
 // ---------------------------------------------------------------------------------------------- //
@@ -81,9 +83,11 @@ end_json() {
     if (GlobalCallDepth <= GlobalMaxCallDepth && IsLoggingOn) {                                    \
         IsLoggingOn = false;                                                                       \
         CODE;                                                                                      \
+        SendToServer("helloc1");                                                                   \
         end_json();                                                                                \
         SendToServer(logs.str().c_str());                                                          \
         logs.str("");                                                                              \
+        SendToServer("helloc2");                                                                   \
         logs.clear();                                                                              \
         IsLoggingOn = true;                                                                        \
     }                                                                                              \

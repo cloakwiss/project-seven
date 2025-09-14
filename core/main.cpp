@@ -93,6 +93,7 @@ ParseArgs(int argc, char *argv[], char **DllPath, char **ExecutablePath, bool *R
 int
 main(int argc, char *argv[]) {
 
+
     // Argument Parsing (I know this is finicky but ok for now) ----------//
     // This will not be done like this anyway, gui will takeover
     char *DllPath = nullptr;
@@ -135,13 +136,15 @@ main(int argc, char *argv[]) {
 
     if (!CreateProcessA(ExecutablePath,            // Need to make it more robust
                         0, 0, 0, 0,                // by adding arguments, more options
-                        CREATE_DEFAULT_ERROR_MODE, //
+                        CREATE_DEFAULT_ERROR_MODE | CREATE_SUSPENDED, //
                         0, 0,                      //
                         &StartupInfo, &ProcessInfo)) {
 
         std::cerr << "Failed to launch process. Error: " << GetLastError() << "\n";
         return 1;
     }
+
+	ResumeThread(ProcessInfo.hThread);
 
     // No need to wait if there is no hook;
     if (!Remove) {
@@ -151,13 +154,13 @@ main(int argc, char *argv[]) {
             char buffer[256];
             DWORD bytesRead;
 
-			std::cout << "{\n";
-			unsigned long i = 0;
+            std::cout << "{\n";
+            unsigned long i = 0;
             while (ReadFile(Pipe, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead > 0) {
                 // std::cout << "[Program] Received hook text: \n" << buffer << "\n";
                 std::cout << "\"" << i++ << "\":" << buffer << ",\n";
             }
-			std::cout << "}\n";
+            std::cout << "}\n";
 
             CloseHandle(Pipe);
         } else {
