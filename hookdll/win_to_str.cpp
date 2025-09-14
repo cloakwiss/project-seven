@@ -103,7 +103,7 @@ register_base() {
     store(BOIL_LPCSTR);
     // store(BOIL_LPCTSTR);
     store(BOIL_LPCVOID);
-    store(BOIL_LPCWSTR);
+    // store(BOIL_LPCWSTR);
     store(BOIL_LPDWORD);
     store(BOIL_LPHANDLE);
     store(BOIL_LPINT);
@@ -112,7 +112,7 @@ register_base() {
     // store(BOIL_LPTSTR);
     store(BOIL_LPVOID);
     store(BOIL_LPWORD);
-    store(BOIL_LPWSTR);
+    // store(BOIL_LPWSTR);
     store(BOIL_LRESULT);
     store(BOIL_PBOOL);
     store(BOIL_PBOOLEAN);
@@ -120,7 +120,7 @@ register_base() {
     store(BOIL_PCHAR);
     store(BOIL_PCSTR);
     // store(BOIL_PCTSTR);
-    store(BOIL_PCWSTR);
+    // store(BOIL_PCWSTR);
     store(BOIL_PDWORD);
     store(BOIL_PDWORDLONG);
     store(BOIL_PDWORD_PTR);
@@ -146,8 +146,8 @@ register_base() {
     store(BOIL_PSIZE_T);
     store(BOIL_PSSIZE_T);
     store(BOIL_PSTR);
-    store(BOIL_PTBYTE);
-    store(BOIL_PTCHAR);
+    // store(BOIL_PTBYTE);
+    // store(BOIL_PTCHAR);
     store(BOIL_PTSTR);
     store(BOIL_PUCHAR);
     store(BOIL_PUHALF_PTR);
@@ -164,9 +164,9 @@ register_base() {
     store(BOIL_PULONG64);
     store(BOIL_PUSHORT);
     store(BOIL_PVOID);
-    store(BOIL_PWCHAR);
+    // store(BOIL_PWCHAR);
     store(BOIL_PWORD);
-    store(BOIL_PWSTR);
+    // store(BOIL_PWSTR);
     store(BOIL_QWORD);
     store(BOIL_SC_HANDLE);
     store(BOIL_SC_LOCK);
@@ -174,8 +174,8 @@ register_base() {
     store(BOIL_SHORT);
     store(BOIL_SIZE_T);
     store(BOIL_SSIZE_T);
-    store(BOIL_TBYTE);
-    store(BOIL_TCHAR);
+    // store(BOIL_TBYTE);
+    // store(BOIL_TCHAR);
     store(BOIL_UCHAR);
     store(BOIL_UHALF_PTR);
     store(BOIL_UINT);
@@ -191,7 +191,7 @@ register_base() {
     store(BOIL_ULONG64);
     store(BOIL_USHORT);
     store(BOIL_USN);
-    store(BOIL_WCHAR);
+    // store(BOIL_WCHAR);
     store(BOIL_WORD);
     store(BOIL_WPARAM);
 }

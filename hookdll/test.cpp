@@ -21,7 +21,7 @@ main() {
     LONG32 long32Val = 0xE4567890;
     LONG64 long64Val = 0xF5678901;
     LPARAM lparamVal = 0x12345678;
-
+    CHAR validchar = 'a';
     // BOOL and LPBOOL
     BOOL validBool = TRUE;
     LPBOOL lpboolVal = &validBool;
@@ -75,9 +75,6 @@ main() {
     LPWORD lpwordVal = &validWord;
 
     // LPWSTR (pointer to valid wide string)
-    WCHAR validWStr[] = L"TestWideString";
-    LPWSTR lpwstrVal = validWStr;
-
     // PBOOL (pointer to valid BOOL)
     PBOOL pboolVal = &validBool;
 
@@ -226,7 +223,7 @@ main() {
     std::cout << "Result for PBOOL: " << BOIL(validPBOOL) << std::endl;
     std::cout << "Result for PBOOLEAN: " << BOIL(validPBOOLEAN) << std::endl;
     std::cout << "Result for PBYTE: " << BOIL(validPBYTE) << std::endl;
-    std::cout << "Result for PCHAR: " << BOIL(validPCHAR) << std::endl;
+    std::cout << "Result for PCHAR: " << BOIL(pcharVal) << std::endl;
     std::cout << "Result for PCSTR: " << BOIL(validPCSTR) << std::endl;
     std::cout << "Result for PCWSTR: " << BOIL(validPCWSTR) << std::endl;
     std::cout << "Result for PDWORD: " << BOIL(validPDWORD) << std::endl;
@@ -245,8 +242,6 @@ main() {
     std::cout << "Result for PLONG64: " << BOIL(validPLONG64) << std::endl;
     std::cout << "Result for PSHORT: " << BOIL(validPSHORT) << std::endl;
     std::cout << "Result for PSTR: " << BOIL(validPSTR) << std::endl;
-    std::cout << "Result for PTBYTE: " << BOIL(validPTBYTE) << std::endl;
-    std::cout << "Result for PTCHAR: " << BOIL(validPTCHAR) << std::endl;
     std::cout << "Result for PTSTR: " << BOIL(validPTSTR) << std::endl;
     std::cout << "Result for PUINT: " << BOIL(validPUINT) << std::endl;
     std::cout << "Result for PUINT32: " << BOIL(validPUINT32) << std::endl;
@@ -255,7 +250,7 @@ main() {
     std::cout << "Result for PULONG_PTR: " << BOIL(validPULONG_PTR) << std::endl;
     std::cout << "Result for PUSHORT: " << BOIL(validPUSHORT) << std::endl;
     std::cout << "Result for PVOID: " << BOIL(validPVOID) << std::endl;
-    std::cout << "Result for PWCHAR: " << BOIL(validPWCHAR) << std::endl;
-    std::cout << "Result for PWORD: " << BOIL(validPWORD) << std::endl;
+    std::cout << "Result for CHAR: " << BOIL(validchar) << std::endl;
+
     return 0;
 }

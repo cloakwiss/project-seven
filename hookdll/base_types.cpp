@@ -70,6 +70,20 @@ inspect(T *ptr) {
 
 // Functions to handle different types -------------------------------------------- //
 
+// Dependent base_functions ------------------------------------------------------- //
+// std::wstring 
+// BOIL_WCHAR(WCHAR val);
+
+std::string
+BOIL_CCHAR(CCHAR val);
+
+std::string
+BOIL_CHAR(CHAR val);
+
+std::string
+BOIL_HANDLE(HANDLE val);
+
+// ------------------------------------------------------------------------------- //
 
 // with A
 std::string
@@ -90,18 +104,21 @@ BOIL_BOOLEAN(BOOLEAN val) {
 
 std::string
 BOIL_BYTE(BYTE val) {
-    return hexify(val);
+    std::string str(1, val);
+    return str;
 }
 
 // with C
 std::string
 BOIL_CCHAR(CCHAR val) {
-    return hexify(val);
+    std::string str(1,val);
+    return str;
 }
 
-std::string
+std::string 
 BOIL_CHAR(CHAR val) {
-    return hexify(val);
+    std::string str(1, val);
+    return str;
 }
 
 std::string
@@ -447,15 +464,15 @@ BOIL_LPCSTR(LPCSTR val) {
     return result;
 }
 
-std::string
-BOIL_LPCWSTR(LPCWSTR val) {
-    std::string result;
-    while (*val != '\0') {
-        result += hexify(inspect(val));
-        ++val;
-    }
-    return result;
-}
+// std::wstring
+// BOIL_LPCWSTR(LPCWSTR val) {
+//     std::wstring result;
+//     while (*val != '\0') {
+//         result += BOIL_WCHAR(inspect(val));
+//         ++val;
+//     }
+//     return result;
+// }
 
 // #ifdef UNICODE
 // std::string BOIL_LPCTSTR(LPCTSTR val){
@@ -498,15 +515,15 @@ BOIL_LPSTR(LPSTR val) {
     return result;
 }
 
-std::string
-BOIL_LPWSTR(LPWSTR val) {
-    std::string result;
-    while (*val != L'\0') {
-        result += hexify(inspect(val));
-        ++val;
-    }
-    return result;
-}
+// std::wstring
+// BOIL_LPWSTR(LPWSTR val) {
+//     std::wstring result;
+//     while (*val != L'\0') {
+//         result += BOIL_WCHAR(inspect(val));
+//         ++val;
+//     }
+//     return result;
+// }
 
 // std::string BOIL_LPTSTR( LPTSTR val) {
 //     return BOIL_LPWSTR(val);
@@ -527,11 +544,12 @@ BOIL_LRESULT(LRESULT val) {
     return BOIL_LONG_PTR(val);
 }
 
-// with W
-std::string
-BOIL_WCHAR(WCHAR val) {
-    return hexify(val);
-}
+// // with W
+// std::wstring
+// BOIL_WCHAR(WCHAR val) {
+//     std::wstring str(1, val);
+//     return str;
+// }
 
 std::string
 BOIL_WORD(WORD val) {
@@ -585,15 +603,15 @@ BOIL_PCSTR(PCSTR val) {
 // #endif
 
 
-std::string
-BOIL_PCWSTR(PCWSTR val) {
-    std::string result;
-    while (*val != L'\0') {
-        result += BOIL_WCHAR(inspect(val));
-        ++val;
-    }
-    return result;
-}
+// std::wstring
+// BOIL_PCWSTR(PCWSTR val) {
+//     std::wstring result;
+//     while (*val != L'\0') {
+//         result += BOIL_WCHAR(inspect(val));
+//         ++val;
+//     }
+//     return result;
+// }
 
 std::string
 BOIL_PDWORD(PDWORD val) {
@@ -729,22 +747,23 @@ BOIL_SSIZE_T(SSIZE_T val) {
     return BOIL_LONG_PTR(val);
 }
 
-// with T
-std::string
-BOIL_TBYTE(TBYTE val) {
-    return BOIL_WCHAR(val);
-}
+//with T
+// std::wstring
+// BOIL_TBYTE(TBYTE val) {
+//     return BOIL_WCHAR(val);
+// }
 
-std::string
-BOIL_TCHAR(TCHAR val) {
-    return BOIL_WCHAR(val);
-}
+// std::wstring
+// BOIL_TCHAR(TCHAR val) {
+//     return BOIL_WCHAR(val);
+// }
 
 // with U
 
 std::string
 BOIL_UCHAR(UCHAR val) {
-    return hexify(val);
+    std::string str(1, val);
+    return str;
 }
 
 std::string
@@ -844,15 +863,15 @@ BOIL_PSTR(PSTR val) {
     return result;
 }
 
-std::string
-BOIL_PTBYTE(PTBYTE val) {
-    return BOIL_TBYTE(inspect(val));
-}
+// std::string
+// BOIL_PTBYTE(PTBYTE val) {
+//     return BOIL_TBYTE(inspect(val));
+// }
 
-std::string
-BOIL_PTCHAR(PTCHAR val) {
-    return BOIL_TCHAR(inspect(val));
-}
+// std::string
+// BOIL_PTCHAR(PTCHAR val) {
+//     return BOIL_TCHAR(inspect(val));
+// }
 
 std::string
 BOIL_PTSTR(PTSTR val) {
@@ -937,25 +956,25 @@ BOIL_PVOID(PVOID val) {
     return hexify(reinterpret_cast<uintptr_t>(val));
 }
 
-std::string
-BOIL_PWCHAR(PWCHAR val) {
-    return BOIL_WCHAR(inspect(val));
-}
+// std::wstring
+// BOIL_PWCHAR(PWCHAR val) {
+//     return BOIL_WCHAR(inspect(val));
+// }
 
 std::string
 BOIL_PWORD(PWORD val) {
     return BOIL_WORD(inspect(val));
 }
 
-std::string
-BOIL_PWSTR(PWSTR val) {
-    std::string result;
-    while (*val) {
-        result += BOIL_WCHAR(inspect(val));
-        ++val;
-    }
-    return result;
-}
+// std::wstring
+// BOIL_PWSTR(PWSTR val) {
+//     std::wstring result;
+//     while (*val) {
+//         result += BOIL_WCHAR(inspect(val));
+//         ++val;
+//     }
+//     return result;
+// }
 
 
 
