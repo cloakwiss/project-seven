@@ -19,6 +19,7 @@ static thread_local double TimeElapsed;
 
 static void
 SendToServer(const char *text) {
+	Sleep(1000);
     if (GlobalPipeHandle == INVALID_HANDLE_VALUE) {
         GlobalPipeHandle = CreateFileA(TEXT("\\\\.\\pipe\\DataPipe"), GENERIC_WRITE, 0, NULL,
                                        OPEN_EXISTING, 0, NULL);

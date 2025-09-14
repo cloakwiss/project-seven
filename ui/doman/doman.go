@@ -20,10 +20,16 @@ func AppendHtmlById(id string, html string, w *webview.WebView) {
 	})
 }
 
+func InsertTextById(id string, text string, w *webview.WebView) {
+	js := fmt.Sprintf(`document.getElementById('%s').value = %q;`, id, text)
+	(*w).Dispatch(func() {
+		(*w).Eval(js)
+	})
+}
+
 func AppendTextById(id string, text string, w *webview.WebView) {
 	js := fmt.Sprintf(`document.getElementById('%s').value += %q;`, id, text)
 	(*w).Dispatch(func() {
-		fmt.Print(text)
 		(*w).Eval(js)
 	})
 }

@@ -277,3 +277,10 @@ button {
   overflow-x: auto;
   /* add padding or margin as needed */
 }
+
+
+textarea {
+  text-align: left;
+  direction: ltr;
+ 
+}

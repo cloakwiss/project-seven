@@ -1,58 +1,22 @@
 package main
 
 import (
-	"bufio"
-	"context"
-	"fmt"
 	"log"
+	"fmt"
 	"net/http"
-	"os/exec"
 	"path/filepath"
 	// "syscall"
 	// "runtime"
-	"time"
+	// "time"
 	// "strings"
 
-	"ui_server/doman"
+	// "ui_server/doman"
+	"ui_server/weblog"
+	"ui_server/p7"
 
-	"github.com/Microsoft/go-winio"
 	"github.com/sqweek/dialog"
 	"github.com/webview/webview_go"
 )
-
-// Inject/Remove HookDLL ------------------------------------------------------------------------ //
-func injectDLL(TargetPath string, HookdllPath string) {
-	HookdllPath = fmt.Sprintf("-d%s", HookdllPath)
-	TargetPath = fmt.Sprintf("-e%s", TargetPath)
-	spawn := exec.Command(
-		"../builds/debug/main.exe",
-		HookdllPath,
-		TargetPath,
-	)
-
-	output, err := spawn.CombinedOutput()
-	fmt.Printf("InjectDLL Output: \n%s\n", output)
-	if err != nil {
-		log.Fatalf("InjectDLL Spawn Failed for some reason %v", err)
-	}
-}
-
-func removeDLL(TargetPath string) {
-	TargetPath = fmt.Sprintf("-e%s", TargetPath)
-	spawn := exec.Command(
-		"../builds/debug/main.exe",
-		TargetPath,
-		"-r",
-	)
-
-	output, err := spawn.CombinedOutput()
-	fmt.Printf("RemoveDLL Output: \n%s\n", output)
-	if err != nil {
-		log.Fatalf("RemoveDLL Spawn Failed for some reason %v", err)
-	}
-}
-
-// ---------------------------------------------------------------------------------------------- //
 
 // Random Utilities ----------------------------------------------------------------------------- //
 func pickFile() (string, error) {
@@ -68,100 +32,6 @@ func pickFile() (string, error) {
 
 	return abs, nil
 }
-
-func handleClient(conn any, w *webview.WebView, cancel context.CancelFunc) {
-
-	defer func() {
-		if c, ok := conn.(interface{ Close() error }); ok {
-			c.Close()
-			cancel()
-		}
-	}()
-
-	reader, ok := conn.(interface{ Read([]byte) (int, error) })
-	if !ok {
-		log.Println("Invalid connection type")
-		return
-	}
-
-	scanner := bufio.NewScanner(reader)
-	i := 0
-	for scanner.Scan() {
-		text := scanner.Text()
-		html := fmt.Sprintf("\"%d\": %s\n", i, text)
-		doman.AppendTextById("hook-status", html, w) // I am getting blocked, it doesn't work for some reason
-		i++
-	}
-
-	if err := scanner.Err(); err != nil {
-		log.Printf("Read error: %v", err)
-	}
-}
-
-// ---------------------------------------------------------------------------------------------- //
-
-// Spawning the core system --------------------------------------------------------------------- //
-func spawnP7(TargetPath string, HookdllPath string, w *webview.WebView) {
-	injectDLL(TargetPath, HookdllPath)
-	defer removeDLL(TargetPath)
-
-	pipeName := `\\.\pipe\DataPipe`
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	pipeCfg := &winio.PipeConfig{
-		SecurityDescriptor: "",
-		MessageMode:        true,
-		InputBufferSize:    256,
-		OutputBufferSize:   256,
-	}
-
-	listener, err := winio.ListenPipe(pipeName, pipeCfg)
-	if err != nil {
-		log.Fatalf("Failed to create pipe: %v", err)
-	}
-	defer listener.Close()
-
-	fmt.Println("Waiting for Hook DLL...")
-
-	go func() {
-		spawn := exec.Command("./launcher.exe", TargetPath)
-		// output, err := spawn.CombinedOutput()
-		// txt := fmt.Sprintf("Target Output:\n%s\n", output)
-		// tst := "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-		// doman.AppendTextById("console-output", txt+tst, w)
-		// if err != nil {
-		// 	log.Fatalf("Target Spawn Failed for some reason %v", err)
-		// }
-
-		spawn.Stdout = nil
-		spawn.Stderr = nil
-		spawn.Stdin = nil
-
-		err := spawn.Start()
-		if err != nil {
-			panic(err)
-		}
-		// cancel context when target app exits.
-	}()
-
-	go func() {
-		for {
-			conn, err := listener.Accept()
-			if err != nil {
-				log.Printf("Listener stopped: %v", err)
-				return
-			}
-			fmt.Println("Hannji Hello")
-
-			handleClient(conn, w, cancel)
-		}
-	}()
-
-	// Let server run until killed
-	<-ctx.Done()
-}
-
 // ---------------------------------------------------------------------------------------------- //
 
 func main() {
@@ -188,15 +58,18 @@ func main() {
 	var TargetPath, HookdllPath string
 	// -------------------------------------------------------------------------------------------- //
 
+	// Log to the ui console not the stdout/stderr
+	wlog := weblog.NewLogger(&w)
+	wlog.Debug("Logger Initialized")
+
 	// Binds for handling interactions fromt the client side -------------------------------------- //
 	w.Bind("PickTarget", func() (string, error) {
 		path, err := pickFile()
 		if err != nil {
-			fmt.Println("TargetPicking is not going well for some reason.")
-			fmt.Println(err)
+			wlog.Error("TargetPicking is not going well for some reason. %v", err)
 		}
 
-		fmt.Printf("The Target Path is: %s\n", path)
+		wlog.Info("The Target Path is: %s", path)
 		TargetPath = path
 		return path, err
 	})
@@ -204,30 +77,29 @@ func main() {
 	w.Bind("PickHookdll", func() (string, error) {
 		path, err := pickFile()
 		if err != nil {
-			fmt.Println("HookdllPicking is not going well for some reason.")
-			fmt.Println(err)
+			wlog.Error("HookdllPicking is not going well for some reason: %v", err)
 		}
 
-		fmt.Printf("The Hookdll Path is: %s\n", path)
+		wlog.Info("The Hookdll Path is: %s", path)
 		HookdllPath = path
 		return path, err
 	})
 
 	w.Bind("SpawnP7", func() {
-		spawnP7(TargetPath, HookdllPath, &w)
+		go p7.Spawn(wlog, TargetPath, HookdllPath, &w)
 	})
 	// -------------------------------------------------------------------------------------------- //
 
 	// Launching the UI --------------------------------------------------------------------------- //
 
-	go func() {
-		for {
-			time.Sleep(500 * time.Millisecond)
-			tst := fmt.Sprintf("Server time: %v\n", time.Now())
-			doman.AppendTextById("console-output", tst, &w)
-		}
-	}()
-	// 	tble := `
+	// go func() {
+	// 	for {
+	// 		time.Sleep(500 * time.Millisecond)
+	// 		tst := fmt.Sprintf("Server time: %v\n", time.Now())
+	// 		doman.AppendTextById("console-output", tst, &w)
+	// 	}
+	// }()
+	// tble := `
 	// <div class="table-container" id="divForTable">
 	//   <table class="table-styled">
 	//     <thead>
@@ -254,9 +126,9 @@ func main() {
 	//     </tbody>
 	//   </table>
 	// </div>
-	// 	`
-	// 	id := "system-log"
-	// 	doman.InsertHtmlById(id, tble, &w)
+	// `
+	// id := "system-log"
+	// doman.InsertHtmlById(id, tble, &w)
 
 	w.Run()
 	// -------------------------------------------------------------------------------------------- //
