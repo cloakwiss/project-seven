@@ -146,12 +146,15 @@ main(int argc, char *argv[]) {
 
 	ResumeThread(ProcessInfo.hThread);
 
+	// NEEDS TO BE MUCH LARGER LIKE 1 MB OR SOMETHING. CLEARLY NOT GOING TO USE THIS, WILL BE IN
+	// DIFFERENT LANGUAGE ALTOGETHER
+	char buffer[2048];
+
     // No need to wait if there is no hook;
     if (!Remove) {
         std::cout << "Waiting for Hook DLL...\n";
         if (ConnectNamedPipe(Pipe, NULL)) {
 
-            char buffer[256];
             DWORD bytesRead;
 
             std::cout << "{\n";

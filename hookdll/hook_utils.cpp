@@ -30,9 +30,7 @@ SendToServer(const char *text) {
         }
     }
 
-	std::cout << "Runing: I got : " << text << "\n";
     DWORD bytesWritten = 0;
-	std::cout << "Runing: I size : " << strlen(text) << "\n";
     WriteFile(GlobalPipeHandle, text, (DWORD)strlen(text) + 1, &bytesWritten, NULL);
 }
 
@@ -83,11 +81,9 @@ end_json() {
     if (GlobalCallDepth <= GlobalMaxCallDepth && IsLoggingOn) {                                    \
         IsLoggingOn = false;                                                                       \
         CODE;                                                                                      \
-        SendToServer("helloc1");                                                                   \
         end_json();                                                                                \
         SendToServer(logs.str().c_str());                                                          \
         logs.str("");                                                                              \
-        SendToServer("helloc2");                                                                   \
         logs.clear();                                                                              \
         IsLoggingOn = true;                                                                        \
     }                                                                                              \

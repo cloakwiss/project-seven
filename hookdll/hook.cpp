@@ -17,13 +17,11 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 
 
     SEND_BEFORE_CALL({
-        SendToServer("\"Hello\"\n");
         start_json_before("MessageBoxA");
         log_fields("hWnd", BOIL(hWnd));
         log_fields("lpText", BOIL(lpText));
         log_fields("lpCaption", BOIL(lpCaption));
         log_fields("uType", BOIL(uType), true);
-		SendToServer("\"Hello2\"\n");
     })
 
     int result;
@@ -324,8 +322,8 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         DetourAttach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
         OutputDebugStringA("attached VirtualAlloc");
 
-        // DetourAttach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
-        // OutputDebugStringA("attached VirtualProtect");
+        DetourAttach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
+        OutputDebugStringA("attached VirtualProtect");
 
         DetourAttach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
         OutputDebugStringA("attached Sleep");
@@ -366,7 +364,7 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         DetourDetach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
         DetourDetach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
         DetourDetach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
-        // DetourDetach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
+        DetourDetach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
         DetourDetach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
         DetourDetach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
         DetourDetach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);
