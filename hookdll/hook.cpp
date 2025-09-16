@@ -322,8 +322,8 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         DetourAttach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
         OutputDebugStringA("attached VirtualAlloc");
 
-        DetourAttach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
-        OutputDebugStringA("attached VirtualProtect");
+        // DetourAttach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
+        // OutputDebugStringA("attached VirtualProtect");
 
         DetourAttach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
         OutputDebugStringA("attached Sleep");
@@ -364,7 +364,7 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         DetourDetach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
         DetourDetach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
         DetourDetach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
-        DetourDetach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
+        // DetourDetach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
         DetourDetach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
         DetourDetach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
         DetourDetach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);

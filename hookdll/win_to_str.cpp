@@ -199,9 +199,25 @@ register_base() {
 
 
 // Main Abstraction --------------------------------------------- //
+
+template<typename T>
+struct is_pointer { static const bool value = false; };
+
+template<typename T>
+struct is_pointer<T*> { static const bool value = true; };
+
 template <typename T>
 std::string
 BOIL(T value) {
+    
+    // to check for null values
+    if (is_pointer<T>::value) {
+        if (!value) {
+            return "NULL";
+        }
+    }
+    // ends here
+
     auto it = baseMap.find(std::type_index(typeid(T)));
 
     if (it != baseMap.end()) {

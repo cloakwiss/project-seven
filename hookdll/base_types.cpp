@@ -65,6 +65,7 @@ inspect(T *ptr) {
     if (ptr == nullptr) {
         return T{};
     }
+
     return *ptr;
 }
 
@@ -85,7 +86,7 @@ std::string BOIL_HANDLE(HANDLE val);
 // with A
 std::string
 BOIL_ATOM(ATOM val) {
-    return hexify(val);
+    return (hexify(val));
 }
 
 // with B

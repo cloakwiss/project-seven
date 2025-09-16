@@ -5,6 +5,8 @@ int main() {
     STARTUPINFOA si;
     PROCESS_INFORMATION pi;
 
+    std::cout << "Inside Create Process Executable.\n";
+
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
