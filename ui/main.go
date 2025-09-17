@@ -37,16 +37,16 @@ func pickFile() (string, error) {
 func SendControl(p7 *app.ApplicationState, controlSignal app.Control) {
 
 	if p7.OutPipe != nil {
-		p7.Log.Debug("STEPPING TO END of NEXT CALL")
-
 		b := []byte{byte(controlSignal)}
-		_, err := p7.OutPipe.Write(b)
+		go func() {
+			_, err := p7.OutPipe.Write(b)
 
-		if err != nil {
-			p7.Log.Error("Write error: %v\n", err)
-		} else {
-			p7.Log.Debug("Wrote Signal %d", controlSignal)
-		}
+			if err != nil {
+				p7.Log.Error("Write error: %v\n", err)
+			} else {
+				p7.Log.Debug("Wrote Signal %d", controlSignal)
+			}
+		}()
 
 	} else {
 		if !p7.IsCoreRunning && (p7.OutPipe == nil) {
@@ -130,30 +130,37 @@ func main() {
 	})
 
 	p7.Ui.Bind("Stop", func() {
+		p7.Log.Info("Stop clicked")
 		SendControl(&p7, app.Stop)
 	})
 
 	p7.Ui.Bind("Resume", func() {
+		p7.Log.Info("Resume clicked")
 		SendControl(&p7, app.Resume)
 	})
 
 	p7.Ui.Bind("Abort", func() {
+		p7.Log.Info("Abort clicked")
 		SendControl(&p7, app.Abort)
 	})
 
 	p7.Ui.Bind("STEC", func() {
+		p7.Log.Info("STEC clicked")
 		SendControl(&p7, app.STEC)
 	})
 
 	p7.Ui.Bind("STSC", func() {
+		p7.Log.Info("STSC clicked")
 		SendControl(&p7, app.STSC)
 	})
 
 	p7.Ui.Bind("STENC", func() {
+		p7.Log.Info("STENC clicked")
 		SendControl(&p7, app.STENC)
 	})
 
 	p7.Ui.Bind("STSNC", func() {
+		p7.Log.Info("STSNC clicked")
 		SendControl(&p7, app.STSNC)
 	})
 	// -------------------------------------------------------------------------------------------- //

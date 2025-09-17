@@ -298,7 +298,7 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
 
     if (reason == DLL_PROCESS_ATTACH) {
-		register_base();
+        register_base();
 
         DetourRestoreAfterWith();
         DetourTransactionBegin();
@@ -338,23 +338,79 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         OutputDebugStringA("commited hook");
 
 
-        // Time Init
+        // Time Init ----------------------------------------------------------- //
         LARGE_INTEGER FreqStructResult = {};
         QueryPerformanceFrequency(&FreqStructResult);
         PerfCounterFrequency = FreqStructResult.QuadPart;
 
-        IsLoggingOn = true; // Why Log when process is yet to attach
+
+        // Getting the Sender Running --------------------------------------------- //
+        ThreadStopEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+        ControlPipeHandle =
+            CreateNamedPipeA(ControlPipeName,                                       // Pipe Name
+                             PIPE_ACCESS_DUPLEX,                                    // Access Type
+                             PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, // Config
+                             1,                                                     // InstanceCount
+                             1,                                                     // OutBuffSize,
+                             1,                                                     // InBuffSize
+                             0, NULL);
+
+        if (ControlPipeHandle == INVALID_HANDLE_VALUE) {
+            std::cerr << "Couldn't create control pipe\n";
+        }
+
+        if (ControlPipeHandle != INVALID_HANDLE_VALUE && ThreadStopEvent) {
+
+            ThreadHandle = CreateThread(nullptr, 0, ControlListener, nullptr, 0, nullptr);
+
+            if (ThreadHandle == INVALID_HANDLE_VALUE) {
+                std::cerr << "Couldn't create control thread \n";
+            }
+        }
+
+        // Getting the Sender Running --------------------------------------------- //
+
+        // Why Log when process is yet to attach
+        IsLoggingOn = true;
         SendToServer("\"STARTED\"\n");
+		std::cout << "HOOK send pipe handle: " << GlobalPipeHandle << '\n';
     } else if (reason == DLL_PROCESS_DETACH) {
 
         SendToServer("\"ENDED\"\n");
-        IsLoggingOn = false; // Why Log when process detached
+        IsLoggingOn = false;
+        // Why Log when process detached
+
+        // Unrolling Control Pipe Mech -------------------------------------------------- //
+
+        if (ThreadStopEvent) {
+            SetEvent(ThreadStopEvent);
+        }
+
+        if (ThreadHandle) {
+            WaitForSingleObject(ThreadHandle, INFINITE);
+            CloseHandle(ThreadHandle);
+            ThreadHandle = nullptr;
+        }
+
+        if (ControlPipeHandle != INVALID_HANDLE_VALUE) {
+            CloseHandle(ControlPipeHandle);
+            ControlPipeHandle = INVALID_HANDLE_VALUE;
+        }
+
+        if (ThreadStopEvent) {
+            CloseHandle(ThreadStopEvent);
+            ThreadStopEvent = nullptr;
+        }
+
+
+        // Unrolling Hook Pipe Handles -------------------------------------------------- //
 
         if (GlobalPipeHandle != INVALID_HANDLE_VALUE) {
             CloseHandle(GlobalPipeHandle);
             GlobalPipeHandle = INVALID_HANDLE_VALUE;
         }
 
+        // Unrolling Hooks -------------------------------------------------------------- //
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
 

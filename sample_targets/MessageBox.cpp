@@ -1,14 +1,16 @@
 #pragma comment(lib, "user32.lib")
 
+#include <iostream>
 #include <windows.h>
-// #include <iostream>
 
-// int WINAPI
-// WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpCmdLine, int nCmdShow) {
 int
 main() {
-    // std::cout << "Inside the target\n";
+    std::cout << "Inside the target\n";
 
+    for (int i = 0; i < 5; i += 1) {
+        std::cout << ("Dragon is white\n");
+        Sleep(1000);
+    }
     MessageBoxA(NULL, "Hello from Windows!", "My MessageBox", MB_OK | MB_ICONINFORMATION);
 
     return 0;

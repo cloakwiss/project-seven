@@ -32,12 +32,12 @@ type ApplicationState struct {
 type Control byte
 
 const (
-	Start  Control = 0
-	Stop   Control = 1
-	Resume Control = 2
-	Abort  Control = 3
-	STEC   Control = 4
-	STSC   Control = 5
-	STENC  Control = 6
-	STSNC  Control = 7
+	Start  Control = 0x21
+	Stop   Control = 0x22
+	Resume Control = 0x23
+	Abort  Control = 0x24
+	STEC   Control = 0x25
+	STSC   Control = 0x26
+	STENC  Control = 0x27
+	STSNC  Control = 0x28
 )

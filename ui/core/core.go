@@ -79,7 +79,7 @@ func Launch(p7 *app.ApplicationState) {
 				p7.Log.Info("Connected the control pipe")
 				break
 			}
-			p7.Log.Error("Couldn't connect control pipe retrying")
+			p7.Log.Error("Couldn't connect control pipe retrying: %v", err)
 			time.Sleep(500 * time.Millisecond)
 		}
 	}()
@@ -88,11 +88,49 @@ func Launch(p7 *app.ApplicationState) {
 	go func() {
 		runtime.LockOSThread()
 		spawn := exec.Command(p7.TargetPath)
-		output, err := spawn.CombinedOutput()
 
-		p7.Log.Info("Target Output:\n%s\n", output)
+		stdoutPipe, err := spawn.StdoutPipe()
 		if err != nil {
-			p7.Log.Fatal("Target Spawn Failed for some reason %v", err)
+			p7.Log.Fatal("Failed to get stdout pipe: %v", err)
+			return
+		}
+		stderrPipe, err := spawn.StderrPipe()
+		if err != nil {
+			p7.Log.Fatal("Failed to get stderr pipe: %v", err)
+			return
+		}
+
+		if err := spawn.Start(); err != nil {
+			p7.Log.Fatal("Target Spawn Failed to start: %v", err)
+			cancel()
+		}
+
+		p7.Log.Info("Target Output:")
+
+		// Stdout Handling
+		go func() {
+			scanner := bufio.NewScanner(stdoutPipe)
+			for scanner.Scan() {
+				p7.Log.Info("[STDOUT] %s", scanner.Text())
+			}
+			if err := scanner.Err(); err != nil {
+				p7.Log.Error("Stdout scan error: %v", err)
+			}
+		}()
+
+		// Stderr Handling
+		go func() {
+			scanner := bufio.NewScanner(stderrPipe)
+			for scanner.Scan() {
+				p7.Log.Error("[STDERR] %s", scanner.Text())
+			}
+			if err := scanner.Err(); err != nil {
+				p7.Log.Error("Stderr scan error: %v", err)
+			}
+		}()
+
+		if err := spawn.Wait(); err != nil {
+			p7.Log.Fatal("Target Spawn Failed: %v", err)
 		}
 
 		cancel()
@@ -121,5 +159,6 @@ func Launch(p7 *app.ApplicationState) {
 	p7.IsCoreRunning = false
 	if p7.OutPipe != nil {
 		p7.OutPipe.Close()
+		p7.OutPipe = nil
 	}
 }
