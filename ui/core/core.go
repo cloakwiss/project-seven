@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
+	"time"
 
 	"ui/app"
 	"ui/doman"
@@ -51,10 +52,9 @@ func Launch(p7 *app.ApplicationState) {
 	inject.InjectDLL(p7)
 	defer inject.RemoveDLL(p7)
 
-	pipeName := `\\.\pipe\DataPipe`
-
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// Listener to read from the InPipe -------------------------------- //
 	pipeCfg := &winio.PipeConfig{
 		SecurityDescriptor: "",
 		MessageMode:        true,
@@ -62,13 +62,28 @@ func Launch(p7 *app.ApplicationState) {
 		OutputBufferSize:   256,
 	}
 
-	listener, err := winio.ListenPipe(pipeName, pipeCfg)
+	listener, err := winio.ListenPipe(p7.InPipeName, pipeCfg)
 	if err != nil {
 		p7.Log.Fatal("Failed to create pipe: %v", err)
 	}
 	defer listener.Close()
 
-	p7.Log.Info("Waiting for Hook DLL...")
+	// Waiting for Target to spawn the listener for controls ----------- //
+	notEnded := true
+	go func() {
+		for p7.OutPipe == nil && notEnded {
+			timeout := 5 * time.Second
+			var err error
+			p7.OutPipe, err = winio.DialPipe(p7.OutPipeName, &timeout)
+			if err == nil {
+				p7.Log.Info("Connected the control pipe")
+				break
+			}
+			p7.Log.Error("Couldn't connect control pipe retrying")
+			time.Sleep(500 * time.Millisecond)
+		}
+	}()
+	// ----------------------------------------------------------------- //
 
 	go func() {
 		runtime.LockOSThread()
@@ -83,19 +98,28 @@ func Launch(p7 *app.ApplicationState) {
 		cancel()
 	}()
 
+	p7.Log.Info("Waiting for Hook DLL...")
 	go func() {
 		for {
+			p7.Log.Debug("Looking for hook senders")
 			conn, err := listener.Accept()
 			if err != nil {
 				p7.Log.Info("Listener stopped: %v", err)
 				return
+			} else {
+				p7.Log.Debug("Listener Connected")
 			}
 
 			handleClient(p7, conn)
 		}
 	}()
 
-	// Let server run until killed
+	p7.IsCoreRunning = true
+
 	<-ctx.Done()
+	notEnded = false
 	p7.IsCoreRunning = false
+	if p7.OutPipe != nil {
+		p7.OutPipe.Close()
+	}
 }

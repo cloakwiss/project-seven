@@ -32,6 +32,7 @@ func (l *Logger) log(level LogLevel, msg string, args ...any) {
 	timestamp := time.Now().Format("15:04:05")
 	line := fmt.Sprintf("\n[%s] %-5s: %s\n", timestamp, level, fmt.Sprintf(msg, args...))
 
+	fmt.Print(line)
 	doman.AppendTextById(ConsoleId, line, l.w)
 }
 

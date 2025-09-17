@@ -52,7 +52,7 @@ HookedCreateProcessA(LPCSTR lpApplicationName, LPSTR lpCommandLine,
                      LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation) {
 
     SEND_BEFORE_CALL({
-        logs << "[HOOK] CreateProcessA called.\n";
+        start_json_before("CreateProcessA");
         logs << "  lpApplicationName: " << BOIL(lpApplicationName) << "\n";
         logs << "  lpCommandLine: " << BOIL(lpCommandLine) << "\n";
         logs << "  bInheritHandles: " << BOIL(bInheritHandles) << "\n";

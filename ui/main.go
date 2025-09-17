@@ -34,6 +34,29 @@ func pickFile() (string, error) {
 	return abs, nil
 }
 
+func SendControl(p7 *app.ApplicationState, controlSignal app.Control) {
+
+	if p7.OutPipe != nil {
+		p7.Log.Debug("STEPPING TO END of NEXT CALL")
+
+		b := []byte{byte(controlSignal)}
+		_, err := p7.OutPipe.Write(b)
+
+		if err != nil {
+			p7.Log.Error("Write error: %v\n", err)
+		} else {
+			p7.Log.Debug("Wrote Signal %d", controlSignal)
+		}
+
+	} else {
+		if !p7.IsCoreRunning && (p7.OutPipe == nil) {
+			p7.Log.Error("P7 is not running")
+		} else if p7.OutPipe == nil {
+			p7.Log.Error("OutPipe is not connected")
+		}
+	}
+}
+
 // ---------------------------------------------------------------------------------------------- //
 
 func main() {
@@ -44,15 +67,16 @@ func main() {
 		Port:          "42069",
 		Page:          app.IndexPage,
 		Ui:            webview.New(true),
+		InPipeName:    `\\.\pipe\P7_HOOKS`,
+		OutPipeName:   `\\.\pipe\P7_CONTROLS`,
 	}
 	defer p7.Ui.Destroy()
 
 	p7.Log = weblog.NewLogger(&p7.Ui)
 	p7.Ui.SetTitle(p7.Title)
 
-	const Url = "http://localhost:"
-
 	// Hosting the ui ----------------------------------------------------------------------------- //
+	const Url = "http://localhost:"
 	fs := http.FileServer(http.Dir("./res"))
 	go func() {
 		fmt.Printf("Serving static files on %s%s\n", Url, p7.Port)
@@ -60,10 +84,8 @@ func main() {
 			log.Fatal(err)
 		}
 	}()
-	// -------------------------------------------------------------------------------------------- //
 
 	// Navigating to the MainPage ----------------------------------------------------------------- //
-
 	page := fmt.Sprintf("%s%s/%s", Url, p7.Port, p7.Page)
 	p7.Ui.Navigate(page)
 
@@ -98,7 +120,6 @@ func main() {
 	p7.Ui.Bind("SpawnP7", func() {
 		if p7.TargetPath != "" && p7.HookDllPath != "" {
 			if !p7.IsCoreRunning {
-				p7.IsCoreRunning = true
 				go core.Launch(&p7)
 			} else {
 				p7.Log.Error("Already Running a P7 instance.")
@@ -106,6 +127,34 @@ func main() {
 		} else {
 			p7.Log.Fatal("Target Path and HookDll path is empty.")
 		}
+	})
+
+	p7.Ui.Bind("Stop", func() {
+		SendControl(&p7, app.Stop)
+	})
+
+	p7.Ui.Bind("Resume", func() {
+		SendControl(&p7, app.Resume)
+	})
+
+	p7.Ui.Bind("Abort", func() {
+		SendControl(&p7, app.Abort)
+	})
+
+	p7.Ui.Bind("STEC", func() {
+		SendControl(&p7, app.STEC)
+	})
+
+	p7.Ui.Bind("STSC", func() {
+		SendControl(&p7, app.STSC)
+	})
+
+	p7.Ui.Bind("STENC", func() {
+		SendControl(&p7, app.STENC)
+	})
+
+	p7.Ui.Bind("STSNC", func() {
+		SendControl(&p7, app.STSNC)
 	})
 	// -------------------------------------------------------------------------------------------- //
 
