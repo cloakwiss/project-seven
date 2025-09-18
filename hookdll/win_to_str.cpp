@@ -210,17 +210,15 @@ template <typename T>
 std::string
 BOIL(T value) {
     
-    // to check for null values
-    if (is_pointer<T>::value) {
-        if (!value) {
-            return "NULL";
-        }
-    }
-    // ends here
-
     auto it = baseMap.find(std::type_index(typeid(T)));
 
     if (it != baseMap.end()) {
+        // to check for null values
+        if (is_pointer<T>::value) {     
+            if (!value) {
+                return "NULL";
+            }
+        }
         return it->second(&value);
     } else {
         std::cout << std::type_index(typeid(T)).name() << " NOT DECLARED!!! \n ";

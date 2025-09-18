@@ -145,7 +145,8 @@ function Build-Samples
 	{
 		$source_path = $file.FullName
 
-		cl $CFlags -Zi  $source_path
+		cl $CFlags -Zi $source_path User32.lib
+
 		if ($LASTEXITCODE -ne 0)
 		{
 			Write-Error "Compilation failed for $source_path"

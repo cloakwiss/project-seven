@@ -52,12 +52,12 @@ HookedCreateProcessA(LPCSTR lpApplicationName, LPSTR lpCommandLine,
                      LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation) {
 
     SEND_BEFORE_CALL({
-        logs << "[HOOK] CreateProcessA called.\n";
-        logs << "  lpApplicationName: " << BOIL(lpApplicationName) << "\n";
-        logs << "  lpCommandLine: " << BOIL(lpCommandLine) << "\n";
-        logs << "  bInheritHandles: " << BOIL(bInheritHandles) << "\n";
-        logs << "  dwCreationFlags: 0x" << BOIL(dwCreationFlags) << "\n";
-        logs << "  lpCurrentDirectory: " << BOIL(lpCurrentDirectory) << "\n";
+        start_json_before("CreateProcessA called");
+        log_fields(" lpApplicationName: ", BOIL(lpApplicationName));
+        log_fields(" lpCommandLine: ", BOIL(lpCommandLine));
+        log_fields(" bInheritHandles: ", BOIL(bInheritHandles));
+        log_fields(" dwCreationFlags: ", BOIL(dwCreationFlags));
+        log_fields(" lpCurrentDirectory: ", BOIL(lpCurrentDirectory), true);
     })
 
     BOOL result = TrueCreateProcessA(
@@ -65,11 +65,10 @@ HookedCreateProcessA(LPCSTR lpApplicationName, LPSTR lpCommandLine,
         dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 
     SEND_AFTER_CALL({
-        logs << "CreateProcessA returned: \n";
-        logs << "  lpCommandLine: " << (lpCommandLine ? lpCommandLine : "NULL") << "\n";
-        logs << " ( PID: " << (lpProcessInformation ? lpProcessInformation->dwProcessId : 0)
-             << ")\n";
-        logs << " returned: " << result << std::endl;
+        start_json_before(" CreateProcessA returned ");
+        log_fields(" lpCommandLine: ", BOIL(lpCommandLine));
+        log_fields(" PID: ", BOIL(lpProcessInformation));
+        log_fields(" returned: ", BOIL(result), true);
     })
 
     return result;
@@ -113,13 +112,13 @@ HookedCreateRemoteThread(HANDLE hProcess, LPSECURITY_ATTRIBUTES lpThreadAttribut
 ) {
 
     SEND_BEFORE_CALL({
-        logs << " [HOOK] CreateRemoteThread called \n";
-        logs << " hProcess: " << hProcess << std::endl;
-        logs << " lpThreadAttributes: " << lpThreadAttributes << std::endl;
-        logs << " dwStackSize: " << dwStackSize << std::endl;
-        logs << " lpStartAddress: " << reinterpret_cast<uintptr_t>(lpStartAddress) << std::endl;
-        logs << " lpParameter: " << lpParameter << std::endl;
-        logs << " dwCreationFlags: " << dwCreationFlags << std::endl;
+        start_json_before("CreateRemoteThread called");
+        log_fields("hProcess: ", BOIL(hProcess));
+        log_fields("lpThreadAttributes: ", BOIL(lpThreadAttributes));
+        log_fields("dwStackSize: ", BOIL(dwStackSize));
+        log_fields("lpStartAddress: ", BOIL(lpStartAddress));
+        log_fields("lpParameter: ", BOIL(lpParameter));
+        log_fields("dwCreationFlags: ", BOIL(dwCreationFlags), true);
     })
 
     HANDLE result =
@@ -127,8 +126,9 @@ HookedCreateRemoteThread(HANDLE hProcess, LPSECURITY_ATTRIBUTES lpThreadAttribut
                                lpParameter, dwCreationFlags, lpThreadId);
 
     SEND_AFTER_CALL({
-        logs << " lpThreadId: " << lpThreadId << std::endl;
-        logs << " returned: " << std::hex << result << std::endl;
+        start_json_after("CreateRemoteThread");
+        log_fields("lpThreadId: ", BOIL(lpThreadId));
+        log_fields("returned: ", BOIL(result), true);
     })
 
     return result;
@@ -143,15 +143,15 @@ static HMODULE WINAPI
 HookedLoadLibraryA(LPCSTR lpLibFileName) {
 
     SEND_BEFORE_CALL({
-        logs << "[HOOK] LoadLibraryA called\n";
-        logs << " lpLibFileName: " << (lpLibFileName ? lpLibFileName : "NULL") << std::endl;
+        start_json_before("LoadLibraryA called");
+        log_fields("pLibFileName: ", BOIL(lpLibFileName), true);
     })
 
     HMODULE result = TrueLoadLibraryA(lpLibFileName);
 
     SEND_AFTER_CALL({
-        logs << " LoadLibraryA Returned\n";
-        logs << " returned: 0x" << std::hex << reinterpret_cast<uintptr_t>(result) << std::endl;
+        start_json_after("LoadLibraryA Returned");
+        log_fields("returned: ", BOIL(result), true);
     })
 
     return result;
@@ -167,20 +167,18 @@ static LPVOID WINAPI
 HookedVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) {
 
     SEND_BEFORE_CALL({
-        logs << "[HOOK] VirtualAlloc called\n";
-        logs << " lpAddress: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpAddress) << std::dec
-             << std::endl;
-        logs << " dwSize: " << dwSize << std::endl;
-        logs << " flAllocationType: 0x" << std::hex << flAllocationType << std::dec << std::endl;
-        logs << " flProtect: 0x" << std::hex << flProtect << std::dec << std::endl;
+        start_json_before("VirtualAlloc called");
+        log_fields("pAddress: ", BOIL(lpAddress));
+        log_fields("wSize: ", BOIL(dwSize));
+        log_fields("lAllocationType: ", BOIL(flAllocationType));
+        log_fields("lProtect: ", BOIL(flProtect), true);
     })
 
     LPVOID result = TrueVirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
 
     SEND_AFTER_CALL({
-        logs << " VirtualAlloc Returned\n";
-        logs << " returned: 0x" << std::hex << reinterpret_cast<uintptr_t>(result) << std::dec
-             << std::endl;
+        start_json_after("irtualAlloc Returned");
+        log_fields("returned: ", BOIL(result), true);
     })
 
     return result;
@@ -209,7 +207,7 @@ HookedVirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD
     SEND_AFTER_CALL({
         start_json_after("VirtualProtect");
         log_fields("result", BOIL(result));
-        log_fields("lpflOldProtect", BOIL(*lpflOldProtect), true);
+        log_fields("lpflOldProtect", BOIL(lpflOldProtect), true);
     })
 
     return result;
@@ -225,7 +223,7 @@ HookedSleep(DWORD dwMilliseconds) {
 
     SEND_BEFORE_CALL({
         start_json_before("Sleep");
-        log_fields("dwMilliseconds", BOIL(dwMilliseconds));
+        log_fields("dwMilliseconds", BOIL(dwMilliseconds), true);
     })
 
     TrueSleep(dwMilliseconds);
@@ -244,17 +242,17 @@ HookedSendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
 
     SEND_BEFORE_CALL({
         start_json_before("SendMessage");
-        logs << " hWnd: " << std::hex << reinterpret_cast<uintptr_t>(hWnd) << std::dec << std::endl;
-        logs << " Msg: " << std::hex << Msg << std::dec << std::endl;
-        logs << " wParam: " << std::hex << wParam << std::dec << std::endl;
-        logs << " lParam: " << std::hex << lParam << std::dec << std::endl;
+        log_fields("Wnd: ", BOIL(hWnd));
+        log_fields("sg: ", BOIL(Msg));
+        log_fields("Param: ", BOIL(wParam));
+        log_fields("Param: ", BOIL(lParam), true);
     })
 
     LRESULT result = TrueSendMessage(hWnd, Msg, wParam, lParam);
 
     SEND_AFTER_CALL({
-        logs << "SendMessage returned\n";
-        logs << " result: " << std::hex << result << std::dec << std::endl;
+        start_json_after("sendMessage returned");
+        log_fields("return: ", BOIL(result), true);
     })
 
     return result;
@@ -271,26 +269,23 @@ HookedWriteProcessMemory(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer
                          SIZE_T *lpNumberOfBytesWritten) {
     SEND_BEFORE_CALL({
         start_json_before("WriteProcessMemory");
-        logs << " hProcess: 0x" << std::hex << reinterpret_cast<uintptr_t>(hProcess) << std::dec
-             << "\n";
-        logs << " lpBaseAddress: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpBaseAddress)
-             << std::dec << "\n";
-        logs << " lpBuffer: 0x" << std::hex << reinterpret_cast<uintptr_t>(lpBuffer) << std::dec
-             << "\n";
-        logs << " nSize: " << nSize << "\n";
+        log_fields("Process: ", BOIL(hProcess));
+        log_fields("pBaseAddress: ", BOIL(lpBaseAddress));
+        log_fields("pBuffer: ", BOIL(lpBuffer));
+        log_fields("Size: ", BOIL(nSize), true);
     })
 
     BOOL result =
         TrueWriteProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, lpNumberOfBytesWritten);
 
     SEND_AFTER_CALL({
-        logs << " lpNumberOfBytesWritten: " << *lpNumberOfBytesWritten << "\n";
-        logs << " Result: " << result << "\n";
+        start_json_after("WriteProcessMemory");
+        log_fields("pNumberOfBytesWritten: ", BOIL(lpNumberOfBytesWritten));
+        log_fields("esult: ", BOIL(result));
     })
 
     return result;
 }
-
 
 
 __declspec(dllexport) BOOL APIENTRY
