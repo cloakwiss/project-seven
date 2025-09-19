@@ -86,7 +86,6 @@ func Launch(p7 *app.ApplicationState) {
 	// ----------------------------------------------------------------- //
 
 	go func() {
-		runtime.LockOSThread()
 		spawn := exec.Command(p7.TargetPath)
 
 		stdoutPipe, err := spawn.StdoutPipe()
@@ -138,6 +137,7 @@ func Launch(p7 *app.ApplicationState) {
 
 	p7.Log.Info("Waiting for Hook DLL...")
 	go func() {
+		runtime.LockOSThread()
 		for {
 			p7.Log.Debug("Looking for hook senders")
 			conn, err := listener.Accept()

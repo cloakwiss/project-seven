@@ -5,8 +5,9 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"sync"
+	"runtime"
 	// "syscall"
-	// "runtime"
 	// "time"
 	// "strings"
 
@@ -43,9 +44,10 @@ func SendControl(p7 *app.ApplicationState, controlSignal app.Control) {
 
 			if err != nil {
 				p7.Log.Error("Write error: %v\n", err)
-			} else {
-				p7.Log.Debug("Wrote Signal %d", controlSignal)
 			}
+			// } else {
+			// 	p7.Log.Debug("Wrote Signal %d", controlSignal)
+			// }
 		}()
 
 	} else {
@@ -66,16 +68,12 @@ func main() {
 		IsCoreRunning: false,
 		Port:          "42069",
 		Page:          app.IndexPage,
-		Ui:            webview.New(true),
 		InPipeName:    `\\.\pipe\P7_HOOKS`,
 		OutPipeName:   `\\.\pipe\P7_CONTROLS`,
 	}
-	defer p7.Ui.Destroy()
-
-	p7.Log = weblog.NewLogger(&p7.Ui)
-	p7.Ui.SetTitle(p7.Title)
 
 	// Hosting the ui ----------------------------------------------------------------------------- //
+
 	const Url = "http://localhost:"
 	fs := http.FileServer(http.Dir("./res"))
 	go func() {
@@ -86,87 +84,103 @@ func main() {
 	}()
 
 	// Navigating to the MainPage ----------------------------------------------------------------- //
+
 	page := fmt.Sprintf("%s%s/%s", Url, p7.Port, p7.Page)
-	p7.Ui.Navigate(page)
+	ready := make(chan struct{})
+
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		runtime.LockOSThread()
+
+		p7.Ui = webview.New(true)
+		defer p7.Ui.Destroy()
+
+		p7.Ui.SetTitle(p7.Title)
+		p7.Ui.Navigate(page)
+		p7.Log = weblog.NewLogger(&p7.Ui)
+
+		// Binds for handling interactions fromt the client side -------------------------------------- //
+		p7.Ui.Bind("PickTarget", func() (string, error) {
+			path, err := pickFile()
+			if err != nil {
+				p7.Log.Error("TargetPicking is not going well for some reason. %v", err)
+			}
+
+			p7.Log.Info("The Target Path is: %s", path)
+			p7.TargetPath = path
+			return path, err
+		})
+
+		p7.Ui.Bind("PickHookdll", func() (string, error) {
+			path, err := pickFile()
+			if err != nil {
+				p7.Log.Error("HookdllPicking is not going well for some reason: %v", err)
+			}
+
+			p7.Log.Info("The Hookdll Path is: %s", path)
+			p7.HookDllPath = path
+			return path, err
+		})
+
+		p7.Ui.Bind("SpawnP7", func() {
+			if p7.TargetPath != "" && p7.HookDllPath != "" {
+				if !p7.IsCoreRunning {
+					go core.Launch(&p7)
+				} else {
+					p7.Log.Error("Already Running a P7 instance.")
+				}
+			} else {
+				p7.Log.Fatal("Target Path and HookDll path is empty.")
+			}
+		})
+
+		p7.Ui.Bind("Stop", func() {
+			p7.Log.Info("Stop clicked")
+			SendControl(&p7, app.Stop)
+		})
+
+		p7.Ui.Bind("Resume", func() {
+			p7.Log.Info("Resume clicked")
+			SendControl(&p7, app.Resume)
+		})
+
+		p7.Ui.Bind("Abort", func() {
+			p7.Log.Info("Abort clicked")
+			SendControl(&p7, app.Abort)
+		})
+
+		p7.Ui.Bind("STEC", func() {
+			p7.Log.Info("STEC clicked")
+			SendControl(&p7, app.STEC)
+		})
+
+		p7.Ui.Bind("STSC", func() {
+			p7.Log.Info("STSC clicked")
+			SendControl(&p7, app.STSC)
+		})
+
+		p7.Ui.Bind("STENC", func() {
+			p7.Log.Info("STENC clicked")
+			SendControl(&p7, app.STENC)
+		})
+
+		p7.Ui.Bind("STSNC", func() {
+			p7.Log.Info("STSNC clicked")
+			SendControl(&p7, app.STSNC)
+		})
+		// -------------------------------------------------------------------------------------------- //
+
+		close(ready)
+		p7.Ui.Run()
+	})
+	<-ready
 
 	// -------------------------------------------------------------------------------------------- //
 
 	// Log to the ui console not the stdout/stderr
 	p7.Log.Debug("Ui Started")
 
-	// Binds for handling interactions fromt the client side -------------------------------------- //
-	p7.Ui.Bind("PickTarget", func() (string, error) {
-		path, err := pickFile()
-		if err != nil {
-			p7.Log.Error("TargetPicking is not going well for some reason. %v", err)
-		}
-
-		p7.Log.Info("The Target Path is: %s", path)
-		p7.TargetPath = path
-		return path, err
-	})
-
-	p7.Ui.Bind("PickHookdll", func() (string, error) {
-		path, err := pickFile()
-		if err != nil {
-			p7.Log.Error("HookdllPicking is not going well for some reason: %v", err)
-		}
-
-		p7.Log.Info("The Hookdll Path is: %s", path)
-		p7.HookDllPath = path
-		return path, err
-	})
-
-	p7.Ui.Bind("SpawnP7", func() {
-		if p7.TargetPath != "" && p7.HookDllPath != "" {
-			if !p7.IsCoreRunning {
-				go core.Launch(&p7)
-			} else {
-				p7.Log.Error("Already Running a P7 instance.")
-			}
-		} else {
-			p7.Log.Fatal("Target Path and HookDll path is empty.")
-		}
-	})
-
-	p7.Ui.Bind("Stop", func() {
-		p7.Log.Info("Stop clicked")
-		SendControl(&p7, app.Stop)
-	})
-
-	p7.Ui.Bind("Resume", func() {
-		p7.Log.Info("Resume clicked")
-		SendControl(&p7, app.Resume)
-	})
-
-	p7.Ui.Bind("Abort", func() {
-		p7.Log.Info("Abort clicked")
-		SendControl(&p7, app.Abort)
-	})
-
-	p7.Ui.Bind("STEC", func() {
-		p7.Log.Info("STEC clicked")
-		SendControl(&p7, app.STEC)
-	})
-
-	p7.Ui.Bind("STSC", func() {
-		p7.Log.Info("STSC clicked")
-		SendControl(&p7, app.STSC)
-	})
-
-	p7.Ui.Bind("STENC", func() {
-		p7.Log.Info("STENC clicked")
-		SendControl(&p7, app.STENC)
-	})
-
-	p7.Ui.Bind("STSNC", func() {
-		p7.Log.Info("STSNC clicked")
-		SendControl(&p7, app.STSNC)
-	})
-	// -------------------------------------------------------------------------------------------- //
-
-	// Launching the UI --------------------------------------------------------------------------- //
-
+	// Testing Utilities -------------------------------------------------------------------------- //
 	// go func() {
 	// 	for {
 	// 		time.Sleep(500 * time.Millisecond)
@@ -204,7 +218,7 @@ func main() {
 	// `
 	// id := "system-log"
 	// doman.InsertHtmlById(id, tble, &w)
-
-	p7.Ui.Run()
 	// -------------------------------------------------------------------------------------------- //
+
+	wg.Wait()
 }

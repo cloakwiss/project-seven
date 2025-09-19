@@ -8,13 +8,13 @@
 #include <sstream>
 #include <atomic>
 
-static HANDLE GlobalPipeHandle = INVALID_HANDLE_VALUE;
+
 static thread_local unsigned long GlobalCallDepth = 0;
 static thread_local unsigned long GlobalMaxCallDepth = 0;
 static thread_local std::ostringstream logs;
 static thread_local bool IsLoggingOn = false;
-static thread_local int64_t PerfCounterFrequency;
-static thread_local double TimeElapsed;
+static thread_local int64_t PerfCounterFrequency = 0;
+static thread_local double TimeElapsed = 0;
 
 static std::atomic<bool> Running{false};
 static std::atomic<bool> SteppingOn{false};
@@ -23,9 +23,11 @@ static std::atomic<bool> StopBeforeCall{false};
 static std::atomic<bool> StopAfterCall{false};
 static std::atomic<bool> Break{false};
 
-static HANDLE ThreadHandle = nullptr;
+static HANDLE HookPipeHandle = INVALID_HANDLE_VALUE;
 static HANDLE ControlPipeHandle = INVALID_HANDLE_VALUE;
-static HANDLE ThreadStopEvent = nullptr;
+
+static HANDLE ThreadHandle = 0;
+static HANDLE ThreadStopEvent = 0;
 
 const LPCSTR HookPipeName = TEXT("\\\\.\\pipe\\P7_HOOKS");
 const LPCSTR ControlPipeName = TEXT("\\\\.\\pipe\\P7_CONTROLS");
@@ -34,11 +36,10 @@ const LPCSTR ControlPipeName = TEXT("\\\\.\\pipe\\P7_CONTROLS");
 
 static void
 SendToServer(const char *text) {
-    if (GlobalPipeHandle == INVALID_HANDLE_VALUE) {
-        GlobalPipeHandle =
-            CreateFileA(HookPipeName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+    if (HookPipeHandle == INVALID_HANDLE_VALUE) {
+        HookPipeHandle = CreateFileA(HookPipeName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
-        if (GlobalPipeHandle == INVALID_HANDLE_VALUE) {
+        if (HookPipeHandle == INVALID_HANDLE_VALUE) {
             DWORD LastError = GetLastError();
             std::cerr << "Failed to open pipe. Error code: " << LastError << std::endl;
             return;
@@ -46,7 +47,7 @@ SendToServer(const char *text) {
     }
 
     DWORD bytesWritten = 0;
-    WriteFile(GlobalPipeHandle, text, (DWORD)strlen(text) + 1, &bytesWritten, NULL);
+    WriteFile(HookPipeHandle, text, (DWORD)strlen(text) + 1, &bytesWritten, NULL);
 }
 
 
@@ -62,82 +63,103 @@ SendToServer(const char *text) {
 #define STENC_SIG  0x27
 #define STSNC_SIG  0x28
 
-// TODO: this needs to be polished this totaly does not work
-// for some reason this needs spanking for not funking my ui
+// TODO: Just needs checking if we need overlapped io or not
 DWORD WINAPI
 ControlListener(LPVOID lpParam) {
-    OVERLAPPED ov = {};
-    ov.hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    bool IsThreadRunning = true;
 
-    BYTE msg = 0;
-    DWORD bytes_read = 0;
-    HANDLE wait_handles[2] = {ThreadStopEvent, ov.hEvent};
+    while (IsThreadRunning) {
 
-    while (true) {
-        ResetEvent(ov.hEvent);
+        // Thread Handling ---------------------------------------------------------------------- //
+		
+		// This is the part that stops cpu melting btw, no extra sleep
+		// and THIS IS A BUSY WORKING THREAD
+        DWORD wait = WaitForSingleObject(ThreadStopEvent, 50);
+        switch (wait) {
+            case (WAIT_ABANDONED):
+            case (WAIT_OBJECT_0): {
+                IsThreadRunning = false;
+            } break;
 
-        std::cout << "Control Listener Ping\n";
-        std::cout << "Control Listener send pipe handle: " << GlobalPipeHandle << '\n';
-        BOOL ok = ReadFile(ControlPipeHandle, &msg, sizeof(msg), nullptr, &ov);
-        // BOOL ok = ReadFile(ControlPipeHandle, &msg, sizeof(msg), nullptr, nullptr);
-        if (!ok && GetLastError() != ERROR_IO_PENDING) {
-            std::cerr << "Should this ever run??";
-            break;
+            case (WAIT_FAILED): {
+                IsThreadRunning = false;
+            } break;
+
+            case (WAIT_TIMEOUT):
+            default: {
+            } break;
         }
 
-        DWORD wait = WaitForMultipleObjects(2, wait_handles, FALSE, INFINITE);
-
-        if (wait == WAIT_OBJECT_0) {
-            CancelIo(ControlPipeHandle);
+        if (!IsThreadRunning) {
             break;
-        } else if (wait == WAIT_OBJECT_0 + 1) {
-            if (GetOverlappedResult(ControlPipeHandle, &ov, &bytes_read, FALSE) &&
-                bytes_read == 1) {
-
-                switch (msg) {
-
-                    case (START_SIG): {
-                        std::cout << "======START SIG========\n";
-                        SendToServer("Start signal\n");
-                    } break;
-
-                    case (STOP_SIG): {
-                        SendToServer("Stop signal\n");
-                    } break;
-
-                    case (RESUME_SIG): {
-                        SendToServer("Resume signal\n");
-                    } break;
-
-                    case (ABORT_SIG): {
-                        SendToServer("Abort signal\n");
-                    } break;
-
-                    case (STEC_SIG): {
-                        SendToServer("Step to end of call signal\n");
-                    } break;
-
-                    case (STSC_SIG): {
-                        SendToServer("Step to start of call signal\n");
-                    } break;
-
-                    case (STENC_SIG): {
-                        SendToServer("Step to end of next call signal\n");
-                    } break;
-
-                    case (STSNC_SIG): {
-                        SendToServer("Step to start of next call signal\n");
-                    } break;
-
-                    default: {
-                        SendToServer("######## UNREACHABLE CODE REACHED ########\n");
-                    } break;
-                }
-            }
         }
+        // -------------------------------------------------------------------------------------- //
+
+        // Reading the signal from the ControlPipe ---------------------------------------------- //
+
+        /* TODO: Dont know if we need overlapped io for this */
+        // OVERLAPPED OverLapEvent = {};
+        // OverLapEvent.hEvent = CreateEventA(0, TRUE, FALSE, 0);
+        BYTE SignalByte = 0;
+        DWORD SignalBytesRead = 0;
+
+        // BOOL ok = ReadFile(ControlPipeHandle, &SignalByte, sizeof(SignalByte), 0, &OverLapEvent);
+        BOOL ok = ReadFile(ControlPipeHandle, &SignalByte, sizeof(SignalByte), 0, 0);
+
+        switch (GetLastError()) {
+            case (ERROR_IO_PENDING): {
+                std::cerr << "IO PENDING OR SOMETHING";
+            } break;
+
+            default: {
+            } break;
+        }
+
+        switch (SignalByte) {
+            case (START_SIG): {
+                SendToServer("Start signal\n");
+            } break;
+
+            case (STOP_SIG): {
+                SendToServer("Stop signal\n");
+            } break;
+
+            case (RESUME_SIG): {
+                SendToServer("Resume signal\n");
+            } break;
+
+            case (ABORT_SIG): {
+                SendToServer("Abort signal\n");
+            } break;
+
+            case (STEC_SIG): {
+                SendToServer("Step to end of call signal\n");
+            } break;
+
+            case (STSC_SIG): {
+                SendToServer("Step to start of call signal\n");
+            } break;
+
+            case (STENC_SIG): {
+                SendToServer("Step to end of next call signal\n");
+            } break;
+
+            case (STSNC_SIG): {
+                SendToServer("Step to start of next call signal\n");
+            } break;
+
+            case (0): {
+            } break;
+
+            default: {
+                std::cerr << "######### UNREACHABLE CODE REACHED ##########";
+            } break;
+        }
+
+        // CloseHandle(OverLapEvent.hEvent);
+
+        // -------------------------------------------------------------------------------------- //
     }
-
-    CloseHandle(ov.hEvent);
     return 0;
 }
 

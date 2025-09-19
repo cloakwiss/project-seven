@@ -1,6 +1,6 @@
-#include <cstdint>
 #pragma comment(lib, "user32.lib")
 
+// #include <cstdint>
 #include <windows.h>
 #include <iostream>
 
@@ -344,8 +344,8 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         PerfCounterFrequency = FreqStructResult.QuadPart;
 
 
-        // Getting the Sender Running --------------------------------------------- //
-        ThreadStopEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+        // Rolling the ControlPipe Thread ----------------------------------------- //
+        ThreadStopEvent = CreateEventA(0, TRUE, FALSE, 0);
         ControlPipeHandle =
             CreateNamedPipeA(ControlPipeName,                                       // Pipe Name
                              PIPE_ACCESS_DUPLEX,                                    // Access Type
@@ -361,7 +361,7 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
         if (ControlPipeHandle != INVALID_HANDLE_VALUE && ThreadStopEvent) {
 
-            ThreadHandle = CreateThread(nullptr, 0, ControlListener, nullptr, 0, nullptr);
+            ThreadHandle = CreateThread(0, 0, ControlListener, 0, 0, 0);
 
             if (ThreadHandle == INVALID_HANDLE_VALUE) {
                 std::cerr << "Couldn't create control thread \n";
@@ -373,23 +373,44 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         // Why Log when process is yet to attach
         IsLoggingOn = true;
         SendToServer("\"STARTED\"\n");
-		std::cout << "HOOK send pipe handle: " << GlobalPipeHandle << '\n';
+
     } else if (reason == DLL_PROCESS_DETACH) {
 
         SendToServer("\"ENDED\"\n");
         IsLoggingOn = false;
         // Why Log when process detached
 
-        // Unrolling Control Pipe Mech -------------------------------------------------- //
+        // Unrolling Control Pipe Thread ------------------------------------------------ //
 
         if (ThreadStopEvent) {
-            SetEvent(ThreadStopEvent);
+            BOOL success = SetEvent(ThreadStopEvent);
+			if (success) {
+				SendToServer("ThreadStopEvent Set\n");
+			} else {
+				SendToServer("ThreadStopEvent Set Failed\n");
+			}
         }
 
         if (ThreadHandle) {
-            WaitForSingleObject(ThreadHandle, INFINITE);
+            DWORD wait = WaitForSingleObject(ThreadHandle, 150);
+            switch (wait) {
+                case (WAIT_OBJECT_0): {
+                    SendToServer("Normal Stopping, from DllMain\n");
+                } break;
+
+				case (WAIT_ABANDONED):
+                case (WAIT_FAILED): {
+                    SendToServer("Dangerous stopping, from DllMain\n");
+                    SendToServer("The Wait Failed for some reason stopping the thread. dll main\n");
+                    std::cerr << "HERE IS THE WAIT FAILED ERROR: " << GetLastError() << '\n';
+                } break;
+
+                case (WAIT_TIMEOUT):
+                default: {
+                } break;
+            }
             CloseHandle(ThreadHandle);
-            ThreadHandle = nullptr;
+            ThreadHandle = 0;
         }
 
         if (ControlPipeHandle != INVALID_HANDLE_VALUE) {
@@ -399,15 +420,15 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
         if (ThreadStopEvent) {
             CloseHandle(ThreadStopEvent);
-            ThreadStopEvent = nullptr;
+            ThreadStopEvent = 0;
         }
 
 
         // Unrolling Hook Pipe Handles -------------------------------------------------- //
 
-        if (GlobalPipeHandle != INVALID_HANDLE_VALUE) {
-            CloseHandle(GlobalPipeHandle);
-            GlobalPipeHandle = INVALID_HANDLE_VALUE;
+        if (HookPipeHandle != INVALID_HANDLE_VALUE) {
+            CloseHandle(HookPipeHandle);
+            HookPipeHandle = INVALID_HANDLE_VALUE;
         }
 
         // Unrolling Hooks -------------------------------------------------------------- //
