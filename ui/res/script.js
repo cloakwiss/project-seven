@@ -33,19 +33,15 @@ document.addEventListener("DOMContentLoaded", () => {
 	await window.Abort();
   });
 
+  document.getElementById("step").addEventListener("click", async() => {
+	await window.Step();
+  });
+
   document.getElementById("stec").addEventListener("click", async() => {
 	await window.STEC();
   });
 
   document.getElementById("stsc").addEventListener("click", async() => {
 	await window.STSC();
-  });
-
-  document.getElementById("stenc").addEventListener("click", async() => {
-	await window.STENC();
-  });
-
-  document.getElementById("stsnc").addEventListener("click", async() => {
-	await window.STSNC();
   });
 });

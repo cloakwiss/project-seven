@@ -9,7 +9,7 @@ main() {
 
     for (int i = 0; i < 5; i += 1) {
         std::cout << ("Dragon is white\n");
-        Sleep(1000);
+        Sleep(0);
     }
     MessageBoxA(NULL, "Hello from Windows!", "My MessageBox", MB_OK | MB_ICONINFORMATION);
 

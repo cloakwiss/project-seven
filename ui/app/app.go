@@ -24,6 +24,7 @@ type ApplicationState struct {
 	Port          string
 	InPipeName    string
 	OutPipeName   string
+	StepState     bool
 	Log           weblog.Logger
 	OutPipe       net.Conn
 	Page          Page
@@ -38,6 +39,4 @@ const (
 	Abort  Control = 0x24
 	STEC   Control = 0x25
 	STSC   Control = 0x26
-	STENC  Control = 0x27
-	STSNC  Control = 0x28
 )

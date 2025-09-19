@@ -6,4 +6,5 @@
 - [x] Make main branch compatible, mean clean it vet it, and push it to main
 - [x] Finally start with the stepping feature
     - [x] Two way communication and waiting in the dll
-    - [] Actual stepping
+    - [x] Actual stepping
+- [] Make a complete strategy for desirilization of the hook data

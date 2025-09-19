@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-	"sync"
 	"runtime"
+	"sync"
 	// "syscall"
 	// "time"
 	// "strings"
@@ -70,6 +70,7 @@ func main() {
 		Page:          app.IndexPage,
 		InPipeName:    `\\.\pipe\P7_HOOKS`,
 		OutPipeName:   `\\.\pipe\P7_CONTROLS`,
+		StepState:     true,
 	}
 
 	// Hosting the ui ----------------------------------------------------------------------------- //
@@ -149,24 +150,33 @@ func main() {
 			SendControl(&p7, app.Abort)
 		})
 
+		p7.Ui.Bind("Step", func() {
+			p7.Log.Info("Step clicked")
+
+			if p7.StepState {
+				SendControl(&p7, app.STEC)
+			} else {
+				SendControl(&p7, app.STSC)
+			}
+
+			// To alter step to start at end of calls
+			p7.StepState = !p7.StepState
+		})
+
 		p7.Ui.Bind("STEC", func() {
 			p7.Log.Info("STEC clicked")
 			SendControl(&p7, app.STEC)
+
+			// To properly fall into the next call start
+			p7.StepState = false
 		})
 
 		p7.Ui.Bind("STSC", func() {
 			p7.Log.Info("STSC clicked")
 			SendControl(&p7, app.STSC)
-		})
 
-		p7.Ui.Bind("STENC", func() {
-			p7.Log.Info("STENC clicked")
-			SendControl(&p7, app.STENC)
-		})
-
-		p7.Ui.Bind("STSNC", func() {
-			p7.Log.Info("STSNC clicked")
-			SendControl(&p7, app.STSNC)
+			// To properly fall into the next call end
+			p7.StepState = true
 		})
 		// -------------------------------------------------------------------------------------------- //
 

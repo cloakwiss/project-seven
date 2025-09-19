@@ -16,11 +16,9 @@ static thread_local bool IsLoggingOn = false;
 static thread_local int64_t PerfCounterFrequency = 0;
 static thread_local double TimeElapsed = 0;
 
-static std::atomic<bool> Running{false};
-static std::atomic<bool> SteppingOn{false};
-static std::atomic<bool> Abort{false};
-static std::atomic<bool> StopBeforeCall{false};
-static std::atomic<bool> StopAfterCall{false};
+// static std::atomic<bool> Running{false};
+static std::atomic<bool> StopBeforeCall{true};
+static std::atomic<bool> StopAfterCall{true};
 static std::atomic<bool> Break{false};
 
 static HANDLE HookPipeHandle = INVALID_HANDLE_VALUE;
@@ -60,8 +58,6 @@ SendToServer(const char *text) {
 #define ABORT_SIG  0x24
 #define STEC_SIG   0x25
 #define STSC_SIG   0x26
-#define STENC_SIG  0x27
-#define STSNC_SIG  0x28
 
 // TODO: Just needs checking if we need overlapped io or not
 DWORD WINAPI
@@ -71,9 +67,9 @@ ControlListener(LPVOID lpParam) {
     while (IsThreadRunning) {
 
         // Thread Handling ---------------------------------------------------------------------- //
-		
-		// This is the part that stops cpu melting btw, no extra sleep
-		// and THIS IS A BUSY WORKING THREAD
+
+        // This is the part that stops cpu melting btw, no extra sleep
+        // and THIS IS A BUSY WORKING THREAD
         DWORD wait = WaitForSingleObject(ThreadStopEvent, 50);
         switch (wait) {
             case (WAIT_ABANDONED):
@@ -121,31 +117,42 @@ ControlListener(LPVOID lpParam) {
             } break;
 
             case (STOP_SIG): {
+                StopBeforeCall.store(true);
+                StopAfterCall.store(true);
+
                 SendToServer("Stop signal\n");
             } break;
 
             case (RESUME_SIG): {
+                StopBeforeCall.store(false);
+                StopAfterCall.store(false);
+
                 SendToServer("Resume signal\n");
             } break;
 
             case (ABORT_SIG): {
                 SendToServer("Abort signal\n");
+                std::cerr << "Aborting on p7's control signal\n";
+
+                ExitProcess('p' + 7); // Easter Egg
             } break;
 
             case (STEC_SIG): {
+                StopBeforeCall.store(false);
+                StopAfterCall.store(true);
+
+                Break.store(true);
+
                 SendToServer("Step to end of call signal\n");
             } break;
 
             case (STSC_SIG): {
+                StopBeforeCall.store(true);
+                StopAfterCall.store(false);
+
+                Break.store(true);
+
                 SendToServer("Step to start of call signal\n");
-            } break;
-
-            case (STENC_SIG): {
-                SendToServer("Step to end of next call signal\n");
-            } break;
-
-            case (STSNC_SIG): {
-                SendToServer("Step to start of next call signal\n");
             } break;
 
             case (0): {
@@ -163,15 +170,46 @@ ControlListener(LPVOID lpParam) {
     return 0;
 }
 
-// Logging Utilities
-// ---------------------------------------------------------------------------- //
+// Stepping Utilities --------------------------------------------------------- //
+
+static void
+ControlBefore() {
+
+    // THIS WILL BE A BUSY WAIT AS WELL
+    // I AM SORRY FOR MY CRIMES
+    while (StopBeforeCall.load()) {
+        if (Break.load()) {
+            break;
+        }
+        Sleep(50);
+    }
+	Break.store(false);
+}
+
+static void
+ControlAfter() {
+
+    // THIS WILL BE A BUSY WAIT AS WELL
+    // I AM SORRY FOR MY CRIMES
+    while (StopAfterCall.load()) {
+
+        if (Break.load()) {
+            break;
+        }
+        Sleep(50);
+    }
+	Break.store(false);
+}
+
+
+// Logging Utilities --------------------------------------------------------- //
 
 static void
 start_json_before(const std::string &hookName) {
     logs << "{\n";
     logs << "  \"hook\": \"" << hookName << "\",\n";
     logs << "  \"call_depth\": \"" << GlobalCallDepth << "\",\n";
-    logs << "  \"args\": {\n";
+    logs << "  \"ARGS\": {\n";
 }
 
 static void
@@ -180,7 +218,7 @@ start_json_after(const std::string &hookName) {
     logs << "  \"hook\": \"" << hookName << "\",\n";
     logs << "  \"call_depth\": \"" << GlobalCallDepth << "\",\n";
     logs << "  \"time\": \"" << TimeElapsed << "us" << "\",\n";
-    logs << "  \"returns\": {\n";
+    logs << "  \"RETURNS\": {\n";
 }
 
 static void
@@ -219,6 +257,7 @@ end_json() {
         SendToServer(logs.str().c_str());                                                          \
         logs.str("");                                                                              \
         logs.clear();                                                                              \
+        ControlBefore();                                                                           \
         IsLoggingOn = true;                                                                        \
     }                                                                                              \
     GlobalCallDepth += 1;
@@ -232,6 +271,7 @@ end_json() {
         SendToServer(logs.str().c_str());                                                          \
         logs.str("");                                                                              \
         logs.clear();                                                                              \
+        ControlAfter();                                                                            \
         IsLoggingOn = true;                                                                        \
     }                                                                                              \
     TimeElapsed = 0.0f;
