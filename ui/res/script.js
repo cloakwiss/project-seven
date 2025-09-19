@@ -20,4 +20,28 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("spawnp7").addEventListener("click", async() => {
 	await window.SpawnP7();
   });
+
+  document.getElementById("stop").addEventListener("click", async() => {
+	await window.Stop();
+  });
+
+  document.getElementById("resume").addEventListener("click", async() => {
+	await window.Resume();
+  });
+
+  document.getElementById("abort").addEventListener("click", async() => {
+	await window.Abort();
+  });
+
+  document.getElementById("step").addEventListener("click", async() => {
+	await window.Step();
+  });
+
+  document.getElementById("stec").addEventListener("click", async() => {
+	await window.STEC();
+  });
+
+  document.getElementById("stsc").addEventListener("click", async() => {
+	await window.STSC();
+  });
 });

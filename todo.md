@@ -3,7 +3,8 @@
 - [x] Test why the hook output update doesn't happen Imediately
 - [x] Put all stdout prints to console prints in the ui
 - [x] p7.Spawn should have only one instance
-- [] Make main branch compatible, mean clean it vet it, and push it to main
-- [] Finally start with the stepping feature
-    - [] Two way communication and waiting in the dll
-    - [] Actual stepping
+- [x] Make main branch compatible, mean clean it vet it, and push it to main
+- [x] Finally start with the stepping feature
+    - [x] Two way communication and waiting in the dll
+    - [x] Actual stepping
+- [] Make a complete strategy for desirilization of the hook data
