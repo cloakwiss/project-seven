@@ -34,9 +34,9 @@ add_geometry(u8 *buffer, u64 *buffer_head, GeometryType type) {
     // ------------------------------- //
 
     Color color = {0};
-    color.r     = 0x11;
-    color.g     = 0x22;
-    color.b     = 0x33;
+    color.r     = 0x1;
+    color.g     = 0x2;
+    color.b     = 0x3;
 
     // ------------------------------- //
 
@@ -145,6 +145,7 @@ get_buffer(u64 *len) {
 
 
     add_geometry(buffer, &buffer_head, T_Point2D);
+    add_geometry(buffer, &buffer_head, T_Color);
 
     return buffer;
 }
