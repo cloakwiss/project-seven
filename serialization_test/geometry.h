@@ -21,30 +21,30 @@ typedef struct {
 typedef struct {
     Point2D start;
     Point2D end;
-    Color color;
+    Color   color;
 } Line;
 
 typedef struct {
     Point2D center;
-    f32 radius;
-    Color color;
+    f32     radius;
+    Color   color;
 } Circle;
 
 typedef union {
     Point2D point;
-    Line line;
-    Circle circle;
+    Line    line;
+    Circle  circle;
 } ShapeData;
 
 typedef struct {
     ShapeType type;
     ShapeData data;
-    u32 id;
+    u32       id;
 } Shape;
 
 typedef struct {
     Shape shapes[3];
-    u32 shape_count;
+    u32   shape_count;
 } Scene;
 
 typedef enum {

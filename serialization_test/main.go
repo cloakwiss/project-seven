@@ -7,9 +7,12 @@ package main
 */
 import "C"
 import (
+	// "encoding/binary"
 	"fmt"
 	"reflect"
 	"unsafe"
+
+	"serialization_test/dsrl"
 )
 
 func newObj(cap int) map[string]any {
@@ -25,10 +28,11 @@ func NewPoint2D() map[string]any {
 }
 
 func NewColor() map[string]any {
+	var r, g, b byte = 0, 0, 0
 	m := newObj(3)
-	m["r"] = nil
-	m["g"] = nil
-	m["b"] = nil
+	m["r"] = r
+	m["g"] = g
+	m["b"] = b
 	return m
 }
 func NewLine() map[string]any {
@@ -87,15 +91,50 @@ func getBuffer() []byte {
 
 func main() {
 	buffer := getBuffer()
-
-	m := NewPoint2D()
-	for key, val := range m {
-		t := reflect.TypeOf(val)
-		fmt.Printf("Key %q has type %v (kind %v)\n", key, t, t.Kind())
-	}
+	var head int = 0
 
 	fmt.Printf("Buffer length: %d\n", len(buffer))
 	fmt.Printf("Buffer data: %v\n", buffer)
+
+	m := NewPoint2D()
+	for key, val := range m /* map[string]any */ {
+		t := reflect.TypeOf(val)
+		fmt.Printf("Key %q has type %v (kind %v)\n", key, t, t.Kind())
+	}
+	// m["x"] = bytesToFloat32(buffer[0:4])
+	// m["y"] = bytesToFloat32(buffer[4:8])
+	var err error
+	m["x"], err = dsrl.Decode(buffer, &head, reflect.TypeOf(m["x"]))
+	if err != nil {
+		fmt.Printf("WHAT THE FUCK: %v\n", err)
+	}
+	m["y"], err = dsrl.Decode(buffer, &head, reflect.TypeOf(m["y"]))
+	if err != nil {
+		fmt.Printf("WHAT THE FUCK: %v\n", err)
+	}
+	fmt.Printf("Point struct that we got: %v", m)
+
+	m2 := NewColor()
+	for key, val := range m2 {
+		t := reflect.TypeOf(val)
+		fmt.Printf("Key %q has type %v (kind %v)\n", key, t, t.Kind())
+	}
+	// m2["r"] = buffer[8]
+	// m2["g"] = buffer[9]
+	// m2["b"] = buffer[10]
+	m2["r"], err = dsrl.Decode(buffer, &head, reflect.TypeOf(m2["r"]))
+	if err != nil {
+		fmt.Printf("WHAT THE FUCK: %v\n", err)
+	}
+	m2["g"], err = dsrl.Decode(buffer, &head, reflect.TypeOf(m2["g"]))
+	if err != nil {
+		fmt.Printf("WHAT THE FUCK: %v\n", err)
+	}
+	m2["b"], err = dsrl.Decode(buffer, &head, reflect.TypeOf(m2["b"]))
+	if err != nil {
+		fmt.Printf("WHAT THE FUCK: %v\n", err)
+	}
+	fmt.Printf("Color struct that we got: %v", m2)
 
 	fmt.Println("Done!")
 }
