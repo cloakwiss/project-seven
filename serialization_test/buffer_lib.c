@@ -106,7 +106,7 @@ add_geometry(u8 *buffer, u64 *buffer_head, GeometryType type) {
 
     switch (type) {
         case (T_Point2D): {
-            copy_n_bytes(4, &point.x, buffer, buffer_head);
+            copy_n_bytes(8, &point.x, buffer, buffer_head);
             copy_n_bytes(4, &point.y, buffer, buffer_head);
         } break;
 

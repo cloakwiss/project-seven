@@ -15,68 +15,117 @@ import (
 	"serialization_test/dsrl"
 )
 
-func newObj(cap int) map[string]any {
-	return make(map[string]any, cap)
+type StructField struct {
+	name string
+	val  any
 }
 
-func NewPoint2D() map[string]any {
-	var x, y float64 = 0.0, 0.0
-	m := newObj(2)
-	m["x"] = x
-	m["y"] = y
-	return m
+func NewPoint2D() []StructField {
+	var x float64 = 0.0
+	var y float32 = 0.0
+	fields := make([]StructField, 2)
+
+	fields[0].name = "x"
+	fields[0].val = x
+
+	fields[1].name = "y"
+	fields[1].val = y
+
+	return fields
 }
 
-func NewColor() map[string]any {
-	var r, g, b byte = 0, 0, 0
-	m := newObj(3)
-	m["r"] = r
-	m["g"] = g
-	m["b"] = b
-	return m
-}
-func NewLine() map[string]any {
-	m := newObj(3)
-	m["start"] = NewPoint2D()
-	m["end"] = NewPoint2D()
-	m["color"] = NewColor()
-	return m
+func NewColor() []StructField {
+	var r, g, b uint8 = 0, 0, 0
+	fields := make([]StructField, 3)
+
+	fields[0].name = "r"
+	fields[0].val = r
+
+	fields[1].name = "g"
+	fields[1].val = g
+
+	fields[2].name = "b"
+	fields[2].val = b
+
+	return fields
 }
 
-func NewCircle() map[string]any {
-	m := newObj(3)
-	m["center"] = NewPoint2D()
-	m["radius"] = nil
-	m["color"] = NewColor()
-	return m
+func NewLine() []StructField {
+	fields := make([]StructField, 3)
+
+	fields[0].name = "start"
+	fields[0].val = NewPoint2D()
+
+	fields[1].name = "end"
+	fields[1].val = NewPoint2D()
+
+	fields[2].name = "color"
+	fields[2].val = NewColor()
+
+	return fields
 }
 
-func NewShapeData() map[string]any {
-	m := newObj(3)
-	m["point"] = nil
-	m["line"] = nil
-	m["circle"] = nil
-	return m
+func NewCircle() []StructField {
+	fields := make([]StructField, 3)
+
+	fields[0].name = "center"
+	fields[0].val = NewPoint2D()
+
+	fields[1].name = "radius"
+	fields[1].val = nil
+
+	fields[2].name = "color"
+	fields[2].val = NewColor()
+
+	return fields
 }
 
-func NewShape() map[string]any {
-	m := newObj(3)
-	m["type"] = nil
-	m["data"] = NewShapeData()
-	m["id"] = nil
-	return m
+func NewShapeData() []StructField {
+	fields := make([]StructField, 3)
+
+	fields[0].name = "point"
+	fields[0].val = nil
+
+	fields[1].name = "line"
+	fields[1].val = nil
+
+	fields[2].name = "circle"
+	fields[2].val = nil
+
+	return fields
 }
 
-func NewScene(capShapes int) map[string]any {
-	m := newObj(2)
-	// You could initialize shapes as a slice of empty maps
-	shapes := make([]map[string]any, capShapes)
+func NewShape() []StructField {
+	fields := make([]StructField, 3)
+
+	fields[0].name = "type"
+	fields[0].val = nil
+
+	fields[1].name = "data"
+	fields[1].val = NewShapeData()
+
+	fields[2].name = "id"
+	fields[2].val = nil
+
+	return fields
+}
+
+func NewScene(capShapes int) []StructField {
+	fields := make([]StructField, 2)
+
+	// Shapes is a slice of StructField slices
+	shapes := make([][]StructField, capShapes)
 	for i := range shapes {
 		shapes[i] = NewShape()
 	}
-	m["shapes"] = shapes
-	m["shape_count"] = nil
-	return m
+
+	fields[0].name = "shapes"
+	fields[0].val = shapes
+
+	fields[1].name = "shape_count"
+	fields[1].val = nil
+
+	return fields
 }
 
 func getBuffer() []byte {
@@ -96,45 +145,30 @@ func main() {
 	fmt.Printf("Buffer length: %d\n", len(buffer))
 	fmt.Printf("Buffer data: %v\n", buffer)
 
-	m := NewPoint2D()
-	for key, val := range m /* map[string]any */ {
-		t := reflect.TypeOf(val)
-		fmt.Printf("Key %q has type %v (kind %v)\n", key, t, t.Kind())
-	}
-	// m["x"] = bytesToFloat32(buffer[0:4])
-	// m["y"] = bytesToFloat32(buffer[4:8])
+	point := NewPoint2D()
 	var err error
-	m["x"], err = dsrl.Decode(buffer, &head, reflect.TypeOf(m["x"]))
-	if err != nil {
-		fmt.Printf("WHAT THE FUCK: %v\n", err)
+	for i := range point {
+		point[i].val, err = dsrl.Decode(buffer, &head, reflect.TypeOf(point[i].val))
+		if err != nil {
+			fmt.Printf("WHAT THE FUCK: %v\n", err)
+		}
 	}
-	m["y"], err = dsrl.Decode(buffer, &head, reflect.TypeOf(m["y"]))
-	if err != nil {
-		fmt.Printf("WHAT THE FUCK: %v\n", err)
-	}
-	fmt.Printf("Point struct that we got: %v", m)
+	fmt.Printf("Point struct that we got: %v\n\n", point)
 
-	m2 := NewColor()
-	for key, val := range m2 {
-		t := reflect.TypeOf(val)
-		fmt.Printf("Key %q has type %v (kind %v)\n", key, t, t.Kind())
+	color := NewColor()
+	for i := range color {
+		color[i].val, err = dsrl.Decode(buffer, &head, reflect.TypeOf(color[i].val))
+		if err != nil {
+			fmt.Printf("WHAT THE FUCK: %v\n", err)
+		}
 	}
-	// m2["r"] = buffer[8]
-	// m2["g"] = buffer[9]
-	// m2["b"] = buffer[10]
-	m2["r"], err = dsrl.Decode(buffer, &head, reflect.TypeOf(m2["r"]))
-	if err != nil {
-		fmt.Printf("WHAT THE FUCK: %v\n", err)
-	}
-	m2["g"], err = dsrl.Decode(buffer, &head, reflect.TypeOf(m2["g"]))
-	if err != nil {
-		fmt.Printf("WHAT THE FUCK: %v\n", err)
-	}
-	m2["b"], err = dsrl.Decode(buffer, &head, reflect.TypeOf(m2["b"]))
-	if err != nil {
-		fmt.Printf("WHAT THE FUCK: %v\n", err)
-	}
-	fmt.Printf("Color struct that we got: %v", m2)
+	fmt.Printf("Color struct that we got: %v\n", color)
+
+	line := NewLine()
+	// NewCircle()
+	// NewShapeData()
+	// NewShape()
+	// NewScene(capShapes int)
 
 	fmt.Println("Done!")
 }
