@@ -1,84 +1,101 @@
 package main
 
 /*
-#cgo CFLAGS: -I.
-#include "geometry.h"
-#include "geometry.c"
-#include "buffer.c"
-#include <stdint.h>
-
-typedef uint8_t u8;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef int32_t i32;
-typedef float f32;
+#cgo CFLAGS: -O0 -g
+#cgo LDFLAGS: -L.\ -lbuffer
+#include "buffer_lib.h"
 */
 import "C"
 import (
 	"fmt"
+	"reflect"
 	"unsafe"
 )
 
-type ShapeType int32
-
-const (
-	ShapePoint  ShapeType = 0
-	ShapeLine   ShapeType = 1
-	ShapeCircle ShapeType = 2
-)
-
-type Point2D struct {
-	X float32
-	Y float32
+func newObj(cap int) map[string]any {
+	return make(map[string]any, cap)
 }
 
-type Color struct {
-	R uint8
-	G uint8
-	B uint8
+func NewPoint2D() map[string]any {
+	var x, y float64 = 0.0, 0.0
+	m := newObj(2)
+	m["x"] = x
+	m["y"] = y
+	return m
 }
 
-type Line struct {
-	Start Point2D
-	End   Point2D
-	Color Color
+func NewColor() map[string]any {
+	m := newObj(3)
+	m["r"] = nil
+	m["g"] = nil
+	m["b"] = nil
+	return m
+}
+func NewLine() map[string]any {
+	m := newObj(3)
+	m["start"] = NewPoint2D()
+	m["end"] = NewPoint2D()
+	m["color"] = NewColor()
+	return m
 }
 
-type Circle struct {
-	Center Point2D
-	Radius float32
-	Color  Color
+func NewCircle() map[string]any {
+	m := newObj(3)
+	m["center"] = NewPoint2D()
+	m["radius"] = nil
+	m["color"] = NewColor()
+	return m
 }
 
-type ShapeData struct {
-	Point  Point2D
-	Line   Line
-	Circle Circle
+func NewShapeData() map[string]any {
+	m := newObj(3)
+	m["point"] = nil
+	m["line"] = nil
+	m["circle"] = nil
+	return m
 }
 
-type Shape struct {
-	Type ShapeType
-	Data ShapeData
-	ID   uint32
+func NewShape() map[string]any {
+	m := newObj(3)
+	m["type"] = nil
+	m["data"] = NewShapeData()
+	m["id"] = nil
+	return m
 }
 
-type Scene struct {
-	Shapes     [3]Shape
-	ShapeCount uint32
+func NewScene(capShapes int) map[string]any {
+	m := newObj(2)
+	// You could initialize shapes as a slice of empty maps
+	shapes := make([]map[string]any, capShapes)
+	for i := range shapes {
+		shapes[i] = NewShape()
+	}
+	m["shapes"] = shapes
+	m["shape_count"] = nil
+	return m
+}
+
+func getBuffer() []byte {
+	var length C.u64 = 0
+	cBuffer := C.get_buffer(&length)
+	defer func() {
+		C.free_buffer(cBuffer)
+	}()
+
+	return C.GoBytes(unsafe.Pointer(cBuffer), C.int(length))
 }
 
 func main() {
-	fmt.Println("Simple CGO Buffer Test")
+	buffer := getBuffer()
 
-	var length C.u64
-	cBuffer := C.get_buffer(&length)
+	m := NewPoint2D()
+	for key, val := range m {
+		t := reflect.TypeOf(val)
+		fmt.Printf("Key %q has type %v (kind %v)\n", key, t, t.Kind())
+	}
 
-	goBuffer := C.GoBytes(unsafe.Pointer(cBuffer), C.int(length))
-
-	fmt.Printf("Buffer length: %d\n", len(goBuffer))
-	fmt.Printf("Buffer data: %s\n", goBuffer)
-
-	C.free_buffer(cBuffer)
+	fmt.Printf("Buffer length: %d\n", len(buffer))
+	fmt.Printf("Buffer data: %v\n", buffer)
 
 	fmt.Println("Done!")
 }
