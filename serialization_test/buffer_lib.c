@@ -34,8 +34,8 @@ add_geometry(u8 *buffer, u64 *buffer_head, GeometryType type) {
     // ------------------------------- //
 
     Color color = {0};
-    color.r     = 0x1;
-    color.g     = 0x2;
+    color.r     = sizeof(GeometryType);
+    color.g     = sizeof(ShapeType);
     color.b     = 0x3;
 
     // ------------------------------- //
@@ -47,9 +47,9 @@ add_geometry(u8 *buffer, u64 *buffer_head, GeometryType type) {
     line.end.x = 5.5f;
     line.end.y = 6.6f;
 
-    line.color.r = 0x44;
-    line.color.g = 0x55;
-    line.color.b = 0x66;
+    line.color.r = 44;
+    line.color.g = 55;
+    line.color.b = 66;
 
     // ------------------------------- //
 
@@ -57,9 +57,9 @@ add_geometry(u8 *buffer, u64 *buffer_head, GeometryType type) {
     circle.center.x = 7.7f;
     circle.center.y = 8.8f;
     circle.radius   = 9.9f;
-    circle.color.r  = 0x77;
-    circle.color.g  = 0x88;
-    circle.color.b  = 0x99;
+    circle.color.r  = 77;
+    circle.color.g  = 88;
+    circle.color.b  = 99;
 
     // ------------------------------- //
 
@@ -77,9 +77,9 @@ add_geometry(u8 *buffer, u64 *buffer_head, GeometryType type) {
     shape_line.data.line.start.y = 13.3f;
     shape_line.data.line.end.x   = 14.4f;
     shape_line.data.line.end.y   = 15.5f;
-    shape_line.data.line.color.r = 0xAA;
-    shape_line.data.line.color.g = 0xBB;
-    shape_line.data.line.color.b = 0xCC;
+    shape_line.data.line.color.r = 33;
+    shape_line.data.line.color.g = 44;
+    shape_line.data.line.color.b = 55;
     shape_line.id                = 1002;
 
     // ------------------------------- //
@@ -89,9 +89,9 @@ add_geometry(u8 *buffer, u64 *buffer_head, GeometryType type) {
     shape_circle.data.circle.center.x = 16.6f;
     shape_circle.data.circle.center.y = 17.7f;
     shape_circle.data.circle.radius   = 18.8f;
-    shape_circle.data.circle.color.r  = 0xDD;
-    shape_circle.data.circle.color.g  = 0xEE;
-    shape_circle.data.circle.color.b  = 0xFF;
+    shape_circle.data.circle.color.r  = 33;
+    shape_circle.data.circle.color.g  = 44;
+    shape_circle.data.circle.color.b  = 55;
     shape_circle.id                   = 1003;
 
     // ------------------------------- //
@@ -106,7 +106,7 @@ add_geometry(u8 *buffer, u64 *buffer_head, GeometryType type) {
 
     switch (type) {
         case (T_Point2D): {
-            copy_n_bytes(8, &point.x, buffer, buffer_head);
+            copy_n_bytes(4, &point.x, buffer, buffer_head);
             copy_n_bytes(4, &point.y, buffer, buffer_head);
         } break;
 
@@ -117,9 +117,24 @@ add_geometry(u8 *buffer, u64 *buffer_head, GeometryType type) {
         } break;
 
         case (T_Line): {
+            copy_n_bytes(4, &line.start.x, buffer, buffer_head);
+            copy_n_bytes(4, &line.start.y, buffer, buffer_head);
+
+            copy_n_bytes(4, &line.end.x, buffer, buffer_head);
+            copy_n_bytes(4, &line.end.y, buffer, buffer_head);
+
+            copy_n_bytes(1, &line.color.r, buffer, buffer_head);
+            copy_n_bytes(1, &line.color.g, buffer, buffer_head);
+            copy_n_bytes(1, &line.color.b, buffer, buffer_head);
         } break;
 
         case (T_Circle): {
+            copy_n_bytes(4, &circle.center.x, buffer, buffer_head);
+            copy_n_bytes(4, &circle.center.y, buffer, buffer_head);
+            copy_n_bytes(4, &circle.radius, buffer, buffer_head);
+            copy_n_bytes(1, &circle.color.r, buffer, buffer_head);
+            copy_n_bytes(1, &circle.color.g, buffer, buffer_head);
+            copy_n_bytes(1, &circle.color.b, buffer, buffer_head);
         } break;
 
         case (T_ShapeData): {
@@ -146,6 +161,8 @@ get_buffer(u64 *len) {
 
     add_geometry(buffer, &buffer_head, T_Point2D);
     add_geometry(buffer, &buffer_head, T_Color);
+    add_geometry(buffer, &buffer_head, T_Line);
+    add_geometry(buffer, &buffer_head, T_Circle);
 
     return buffer;
 }
