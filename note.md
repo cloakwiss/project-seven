@@ -6,7 +6,6 @@ function id : cstring
 depth: uint32
 argument {
     arg1 {
-        byte: len uint64
         data: byte[]
     }
     arg2 {

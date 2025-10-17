@@ -1,4 +1,3 @@
-# Todos For Ayush
 - [x] Refactor the code, there can be many clear distinction between modules like html handling, injecting etc.
 - [x] Test why the hook output update doesn't happen Imediately
 - [x] Put all stdout prints to console prints in the ui
@@ -7,4 +6,17 @@
 - [x] Finally start with the stepping feature
     - [x] Two way communication and waiting in the dll
     - [x] Actual stepping
-- [] Make a complete strategy for desirilization of the hook data
+
+- [ ] Make a complete strategy for desirilization of the hook data
+    - [ ] NO UNION
+- [ ] Proper storing of hook calls and returns in core list in app
+- [ ] code gen for struct copy
+- [ ] code gen for hooks
+- [ ] complete ui workflow
+    - [ ] recording hooks in a table in ui and in a list in app
+    - [ ] showing info like
+        - [ ] argument list
+        - [ ] return list
+        - [ ] func description
+        - [ ] arg/return desc along with value
+- [ ] report generation

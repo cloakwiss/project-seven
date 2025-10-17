@@ -5,26 +5,31 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"reflect"
+	// "reflect"
 )
+
+type StructField struct {
+	Name string
+	Val  any
+}
 
 // Give 4 bytes get a float32. or get garbage
 func bytesToFloat32(b []byte) float32 {
-	fmt.Printf("float32 bytes: %v\n", b)
+	// fmt.Printf("float32 bytes: %v\n", b)
 	bits := binary.LittleEndian.Uint32(b)
 	return math.Float32frombits(bits)
 }
 
 // Give 8 bytes get a float64, or get garbage
 func bytesToFloat64(b []byte) float64 {
-	fmt.Printf("float64 bytes: %v\n", b)
+	// fmt.Printf("float64 bytes: %v\n", b)
 	bits := binary.LittleEndian.Uint64(b)
 	return math.Float64frombits(bits)
 }
 
 // Decode returns a deserialized value of the given type (‘valueType’) by reading from buf at offset *head, and advances *head.
 // Strings are treated as C-strings (null-terminated). Integers and unsigned are unified.
-func Decode(buf []byte, head *int, valueType reflect.Type) (any, error) {
+func Decode(buf []byte, head *int, value any) (any, error) {
 
 	readBytes := func(n int) ([]byte, error) {
 		if *head+n > len(buf) {
@@ -35,22 +40,22 @@ func Decode(buf []byte, head *int, valueType reflect.Type) (any, error) {
 		return b, nil
 	}
 
-	switch valueType.Kind() {
-	case reflect.Bool:
+	switch v := value.(type) {
+	case bool:
 		b, err := readBytes(1)
 		if err != nil {
 			return nil, err
 		}
 		return (b[0] != 0), nil
 
-	case reflect.Int8:
+	case int8:
 		b, err := readBytes(1)
 		if err != nil {
 			return nil, err
 		}
 		return int8(b[0]), nil
 
-	case reflect.Int16:
+	case int16:
 		b, err := readBytes(2)
 		if err != nil {
 			return nil, err
@@ -58,7 +63,7 @@ func Decode(buf []byte, head *int, valueType reflect.Type) (any, error) {
 		u := binary.LittleEndian.Uint16(b)
 		return int16(u), nil
 
-	case reflect.Int32:
+	case int32:
 		b, err := readBytes(4)
 		if err != nil {
 			return nil, err
@@ -66,7 +71,7 @@ func Decode(buf []byte, head *int, valueType reflect.Type) (any, error) {
 		u := binary.LittleEndian.Uint32(b)
 		return int32(u), nil
 
-	case reflect.Int64:
+	case int64:
 		b, err := readBytes(8)
 		if err != nil {
 			return nil, err
@@ -74,14 +79,14 @@ func Decode(buf []byte, head *int, valueType reflect.Type) (any, error) {
 		u := binary.LittleEndian.Uint64(b)
 		return int64(u), nil
 
-	case reflect.Uint8:
+	case uint8:
 		b, err := readBytes(1)
 		if err != nil {
 			return nil, err
 		}
 		return uint8(b[0]), nil
 
-	case reflect.Uint16:
+	case uint16:
 		b, err := readBytes(2)
 		if err != nil {
 			return nil, err
@@ -89,7 +94,7 @@ func Decode(buf []byte, head *int, valueType reflect.Type) (any, error) {
 		u := binary.LittleEndian.Uint16(b)
 		return u, nil
 
-	case reflect.Uint32:
+	case uint32:
 		b, err := readBytes(4)
 		if err != nil {
 			return nil, err
@@ -97,7 +102,7 @@ func Decode(buf []byte, head *int, valueType reflect.Type) (any, error) {
 		u := binary.LittleEndian.Uint32(b)
 		return u, nil
 
-	case reflect.Uint64:
+	case uint64:
 		b, err := readBytes(8)
 		if err != nil {
 			return nil, err
@@ -105,21 +110,21 @@ func Decode(buf []byte, head *int, valueType reflect.Type) (any, error) {
 		u := binary.LittleEndian.Uint64(b)
 		return u, nil
 
-	case reflect.Float32:
+	case float32:
 		b, err := readBytes(4)
 		if err != nil {
 			return nil, err
 		}
 		return bytesToFloat32(b), nil
 
-	case reflect.Float64:
+	case float64:
 		b, err := readBytes(8)
 		if err != nil {
 			return nil, err
 		}
 		return bytesToFloat64(b), nil
 
-	case reflect.String:
+	case string:
 		start := *head
 		for *head < len(buf) {
 			if buf[*head] == 0 {
@@ -134,6 +139,10 @@ func Decode(buf []byte, head *int, valueType reflect.Type) (any, error) {
 		*head++
 		return s, nil
 
+	case []StructField:
+		val := v
+		DecodeStructure(&val, buf, head)
+		return val, nil
 	// case reflect.Pointer:
 	// 	b, err := readBytes(1)
 	// 	if err != nil {
@@ -149,6 +158,16 @@ func Decode(buf []byte, head *int, valueType reflect.Type) (any, error) {
 	// 	return decodeValue(buf, head, order, newVal.Elem())
 
 	default:
-		return nil, fmt.Errorf("unsupported kind %s", valueType.Kind())
+		return nil, fmt.Errorf("unsupported kind %s", v)
+	}
+}
+
+func DecodeStructure(structure *[]StructField, buffer []byte, head *int) {
+	var err error
+	for i := range *structure {
+		(*structure)[i].Val, err = Decode(buffer, head, (*structure)[i].Val)
+		if err != nil {
+			fmt.Printf("Error occured decoding the bufer: %v\n", err)
+		}
 	}
 }

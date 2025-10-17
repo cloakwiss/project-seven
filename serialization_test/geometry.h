@@ -8,7 +8,7 @@
 typedef enum { SHAPE_POINT = 0, SHAPE_LINE = 1, SHAPE_CIRCLE = 2 } ShapeType;
 
 typedef struct {
-    f64 x;
+    f32 x;
     f32 y;
 } Point2D;
 
