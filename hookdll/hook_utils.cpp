@@ -31,6 +31,21 @@ const LPCSTR HookPipeName = TEXT("\\\\.\\pipe\\P7_HOOKS");
 const LPCSTR ControlPipeName = TEXT("\\\\.\\pipe\\P7_CONTROLS");
 
 // Sending to the UI ---------------------------------------------------------------------------- //
+static void
+SendHookBuffer(uint8_t* buffer, size_t len){
+        if (HookPipeHandle == INVALID_HANDLE_VALUE) {
+        HookPipeHandle = CreateFileA(HookPipeName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+
+        if (HookPipeHandle == INVALID_HANDLE_VALUE) {
+            DWORD LastError = GetLastError();
+            std::cerr << "Failed to open pipe. Error code: " << LastError << std::endl;
+            return;
+        }
+    }
+
+    DWORD bytesWritten = 0;
+    WriteFile(HookPipeHandle, buffer, (DWORD)len , &bytesWritten, NULL);
+}
 
 static void
 SendToServer(const char *text) {
@@ -253,10 +268,7 @@ end_json() {
     if (GlobalCallDepth <= GlobalMaxCallDepth && IsLoggingOn) {                                    \
         IsLoggingOn = false;                                                                       \
         CODE;                                                                                      \
-        end_json();                                                                                \
-        SendToServer(logs.str().c_str());                                                          \
-        logs.str("");                                                                              \
-        logs.clear();                                                                              \
+        SendHookBuffer(bytebuffer, bufferhead);                                                    \                                                                                                                                                     
         ControlBefore();                                                                           \
         IsLoggingOn = true;                                                                        \
     }                                                                                              \
@@ -267,10 +279,7 @@ end_json() {
     if (GlobalCallDepth <= GlobalMaxCallDepth && IsLoggingOn) {                                    \
         IsLoggingOn = false;                                                                       \
         CODE;                                                                                      \
-        end_json();                                                                                \
-        SendToServer(logs.str().c_str());                                                          \
-        logs.str("");                                                                              \
-        logs.clear();                                                                              \
+        SendHookBuffer(bytebuffer, bufferhead);                                                    \                                                                      
         ControlAfter();                                                                            \
         IsLoggingOn = true;                                                                        \
     }                                                                                              \

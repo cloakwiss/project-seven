@@ -11,7 +11,9 @@
 #include <ddeml.h>
 #include <shellapi.h>
 #include <cstdio>
+#include "serialized_mem.cpp"
 
+size_t size = 0;
 typedef unsigned __int64 QWORD;
 // Hex printing functions ------------------------------------------------------------- //
 
@@ -159,7 +161,9 @@ BOIL_FLOAT(FLOAT val) {
 // with H
 std::string
 BOIL_HANDLE(HANDLE val) {
-    return hexify(reinterpret_cast<uintptr_t>(val));
+    con_to_byteP((void*)&val, &bufferhead, bytebuffer);
+    delimiter(&bufferhead);
+    return "";
 }
 
 std::string
@@ -369,7 +373,9 @@ BOIL_INT16(INT16 val) {
 
 std::string
 BOIL_INT32(INT32 val) {
-    return hexify(val);
+    size = sizeof(val);
+    con_to_byte((void*)val, &bufferhead, bytebuffer, &size);
+    return "";
 }
 
 std::string
@@ -454,12 +460,10 @@ BOIL_LPBYTE(LPBYTE val) {
 
 std::string
 BOIL_LPCSTR(LPCSTR val) {
-    std::string result;
-    while (*val) {
-        result += BOIL_CHAR(inspect(val));
-        ++val;
-    }
-    return result;
+    size = strlen(val);
+    con_to_byte((void*)val, &bufferhead, bytebuffer, &size);
+    delimiter(&bufferhead);
+    return "";
 }
 
 // std::wstring
@@ -772,7 +776,10 @@ BOIL_UHALF_PTR(UHALF_PTR val) {
 
 std::string
 BOIL_UINT(UINT val) {
-    return hexify(val);
+    size = sizeof(UINT);
+    con_to_byte((void*)&val, &bufferhead, bytebuffer, &size);
+    delimiter(&bufferhead);
+    return "";
 }
 
 std::string
@@ -975,7 +982,34 @@ BOIL_PWORD(PWORD val) {
 //     return result;
 // }
 
+// int main(){
 
+//     int a = 10;
+//     int * intptr = &a;
+//     void * val = &a;
+
+//     const char* str;
+//     str = "Hello! from buffer";
+//     size_t size = strlen(str) ;
+
+//     allocate_buffer();
+
+//     BOIL_HANDLE(val);
+//     BOIL_UINT((uint32_t)a);
+//     BOIL_LPCSTR(str);
+
+//     printf("address: %p\n", &a);
+//     printf("bufferhead: %d\n", bufferhead);
+//     for(size_t i = 0; i < bufferhead; i++){
+//         if(bytebuffer[i] == 0x01E) printf("%c ", '|');
+//         else
+//             printf("%x ", bytebuffer[i]);
+//     }
+
+//     free_buffer();
+
+//     return 0;
+// }
 
 // ---------------------------------------------------------------------------------------------- //
 #endif
