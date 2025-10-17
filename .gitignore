@@ -3,11 +3,13 @@
 .vscode/
 
 *.exe
+*.a
 *.obj
 *.dll
 *.ilk
 *.pdb
 *.db*
+*.zip
 
 
 tmp/

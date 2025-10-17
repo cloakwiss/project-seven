@@ -3,13 +3,13 @@ package core
 import (
 	"bufio"
 	"context"
-	"fmt"
+	// "fmt"
 	"os/exec"
 	"runtime"
 	"time"
 
 	"ui/app"
-	"ui/doman"
+	// "ui/doman"
 	"ui/inject"
 
 	"github.com/Microsoft/go-winio"
@@ -32,10 +32,12 @@ func handleClient(p7 *app.ApplicationState, conn any) {
 	scanner := bufio.NewScanner(reader)
 	i := 0
 	for scanner.Scan() {
-		text := scanner.Text()
-
-		html := fmt.Sprintf("\"%d\": %s\n", i, text)
-		doman.AppendTextById("hook-status", html, &p7.Ui)
+		// text := scanner.Text()
+		//
+		// html := fmt.Sprintf("\"%d\": %s\n", i, text)
+		// doman.AppendTextById("hook-status", html, &p7.Ui)
+		bytes := scanner.Bytes()
+		p7.Log.Info("Bytes from Hook: (%v)", bytes)
 
 		i += 1
 	}

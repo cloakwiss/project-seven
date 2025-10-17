@@ -161,7 +161,7 @@ BOIL_FLOAT(FLOAT val) {
 // with H
 std::string
 BOIL_HANDLE(HANDLE val) {
-    con_to_byteP((void*)&val, &bufferhead, bytebuffer);
+    con_to_byteP((void *)&val, &bufferhead, bytebuffer);
     delimiter(&bufferhead);
     return "";
 }
@@ -374,7 +374,7 @@ BOIL_INT16(INT16 val) {
 std::string
 BOIL_INT32(INT32 val) {
     size = sizeof(val);
-    con_to_byte((void*)val, &bufferhead, bytebuffer, &size);
+    con_to_byte(&val, &bufferhead, bytebuffer, &size);
     return "";
 }
 
@@ -461,7 +461,7 @@ BOIL_LPBYTE(LPBYTE val) {
 std::string
 BOIL_LPCSTR(LPCSTR val) {
     size = strlen(val);
-    con_to_byte((void*)val, &bufferhead, bytebuffer, &size);
+    con_to_byte((void *)val, &bufferhead, bytebuffer, &size);
     delimiter(&bufferhead);
     return "";
 }
@@ -777,7 +777,7 @@ BOIL_UHALF_PTR(UHALF_PTR val) {
 std::string
 BOIL_UINT(UINT val) {
     size = sizeof(UINT);
-    con_to_byte((void*)&val, &bufferhead, bytebuffer, &size);
+    con_to_byte((void *)&val, &bufferhead, bytebuffer, &size);
     delimiter(&bufferhead);
     return "";
 }

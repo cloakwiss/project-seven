@@ -32,8 +32,8 @@ const LPCSTR ControlPipeName = TEXT("\\\\.\\pipe\\P7_CONTROLS");
 
 // Sending to the UI ---------------------------------------------------------------------------- //
 static void
-SendHookBuffer(uint8_t* buffer, size_t len){
-        if (HookPipeHandle == INVALID_HANDLE_VALUE) {
+SendHookBuffer(uint8_t *buffer, size_t len) {
+    if (HookPipeHandle == INVALID_HANDLE_VALUE) {
         HookPipeHandle = CreateFileA(HookPipeName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
         if (HookPipeHandle == INVALID_HANDLE_VALUE) {
@@ -44,7 +44,7 @@ SendHookBuffer(uint8_t* buffer, size_t len){
     }
 
     DWORD bytesWritten = 0;
-    WriteFile(HookPipeHandle, buffer, (DWORD)len , &bytesWritten, NULL);
+    WriteFile(HookPipeHandle, buffer, (DWORD)len, &bytesWritten, NULL);
 }
 
 static void
@@ -198,7 +198,7 @@ ControlBefore() {
         }
         Sleep(50);
     }
-	Break.store(false);
+    Break.store(false);
 }
 
 static void
@@ -213,7 +213,7 @@ ControlAfter() {
         }
         Sleep(50);
     }
-	Break.store(false);
+    Break.store(false);
 }
 
 
@@ -251,24 +251,21 @@ end_json() {
     logs << "  }\n";
     logs << "}\n";
 }
-// ----------------------------------------------------------------------------------------------
-// //
+// ---------------------------------------------------------------------------------------------- //
 
-// ----------------------------------------------------------------------------------------------
-// // THIS STUFF IS VERY IMPORTANT
-// ----------------------------------------------------------------- //
-// ----------------------------------------------------------------------------------------------
-// // The reason for keeping logs global is that we do not want to reallocate it again and
-// again. -- // It will then not reallocate memmory for the log all the time, we just clear
-// it. -------------- //
-// ----------------------------------------------------------------------------------------------
-// //
+
+// ---------------------------------------------------------------------------------------------- //
+// THIS STUFF IS VERY IMPORTANT ----------------------------------------------------------------- //
+// ---------------------------------------------------------------------------------------------- //
+// The reason for keeping logs global is that we do not want to reallocate it again and again. -- //
+// It will then not reallocate memmory for the log all the time, we just clear it. -------------- //
+// ---------------------------------------------------------------------------------------------- //
 
 #define SEND_BEFORE_CALL(CODE)                                                                     \
     if (GlobalCallDepth <= GlobalMaxCallDepth && IsLoggingOn) {                                    \
         IsLoggingOn = false;                                                                       \
         CODE;                                                                                      \
-        SendHookBuffer(bytebuffer, bufferhead);                                                    \                                                                                                                                                     
+        SendHookBuffer(bytebuffer, bufferhead);                                                    \
         ControlBefore();                                                                           \
         IsLoggingOn = true;                                                                        \
     }                                                                                              \
@@ -279,7 +276,7 @@ end_json() {
     if (GlobalCallDepth <= GlobalMaxCallDepth && IsLoggingOn) {                                    \
         IsLoggingOn = false;                                                                       \
         CODE;                                                                                      \
-        SendHookBuffer(bytebuffer, bufferhead);                                                    \                                                                      
+        SendHookBuffer(bytebuffer, bufferhead);                                                    \
         ControlAfter();                                                                            \
         IsLoggingOn = true;                                                                        \
     }                                                                                              \

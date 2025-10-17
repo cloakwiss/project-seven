@@ -5,34 +5,31 @@
 #include "toBytes.cpp"
 
 size_t bufferhead = 0;
-uint8_t* bytebuffer = NULL;
+uint8_t *bytebuffer = NULL;
 
 
-void delimiter(size_t *buffer_head){
+void
+delimiter(size_t *buffer_head) {
     bytebuffer[*buffer_head] = 0x01E;
-    (*buffer_head) ++;
+    (*buffer_head)++;
 }
 
-void allocate_buffer(){
+void
+allocate_buffer() {
 
-        bytebuffer = (uint8_t*)VirtualAlloc(
-        NULL,                        
-        BUFFER_SIZE,                 
-        MEM_COMMIT | MEM_RESERVE,    
-        PAGE_READWRITE               
-    );
+    bytebuffer =
+        (uint8_t *)VirtualAlloc(NULL, BUFFER_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
     if (bytebuffer == NULL) {
         printf("VirtualAlloc failed with error %lu\n", GetLastError());
         return;
     }
 
-    printf("allocated \n");  
-
+    printf("allocated \n");
 }
 
 void
-free_buffer(){
+free_buffer() {
     if (!VirtualFree(bytebuffer, 0, MEM_RELEASE)) {
         printf("VirtualFree failed with error %lu\n", GetLastError());
         return;

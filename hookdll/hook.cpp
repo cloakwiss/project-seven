@@ -10,9 +10,10 @@
 
 
 // enter hook name in byte --------------------------------------------------------------------- //
-void name_to_byte(char *s){
+void
+name_to_byte(char *s) {
     size = strlen(s);
-    con_to_byte((void*)s, &bufferhead, bytebuffer, &size);
+    con_to_byte((void *)s, &bufferhead, bytebuffer, &size);
 }
 
 // MessageBoxA --------------------------------------------------------------------------------- //
@@ -20,9 +21,8 @@ static int(WINAPI *TrueMessageBoxA)(HWND, LPCSTR, LPCSTR, UINT) = MessageBoxA;
 static int WINAPI
 HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 
-
     SEND_BEFORE_CALL({
-        name_to_byte("MessageBoxA");
+        name_to_byte((char *)"MessageBoxA");
         BOIL_HWND(hWnd);
         BOIL_LPCSTR(lpText);
         BOIL_LPCSTR(lpCaption);
@@ -33,7 +33,7 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
     TIME({ result = TrueMessageBoxA(hWnd, lpText, lpCaption, uType); });
 
     SEND_AFTER_CALL({
-        name_to_byte("MessageBoxA");
+        name_to_byte((char *)"MessageBoxA");
         BOIL_INT32(result);
     })
 
@@ -66,8 +66,9 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 //     })
 
 //     BOOL result = TrueCreateProcessA(
-//         lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles,
-//         dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+//         lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+//         bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo,
+//         lpProcessInformation);
 
 //     SEND_AFTER_CALL({
 //         start_json_before(" CreateProcessA returned ");
@@ -196,7 +197,8 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 //                                         PDWORD lpflOldProtect) = VirtualProtect;
 
 // static BOOL WINAPI
-// HookedVirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect) {
+// HookedVirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect)
+// {
 
 //     SEND_BEFORE_CALL({
 //         start_json_before("VirtualProtect");
@@ -266,7 +268,8 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 
 
 // // WriteProcessMemory
-// static BOOL(WINAPI *TrueWriteProcessMemory)(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer,
+// static BOOL(WINAPI *TrueWriteProcessMemory)(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID
+// lpBuffer,
 //                                             SIZE_T nSize,
 //                                             SIZE_T *lpNumberOfBytesWritten) = WriteProcessMemory;
 // static BOOL WINAPI
@@ -345,7 +348,7 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
 
         // Rolling the ControlPipe Thread ----------------------------------------- //
-		
+
         ThreadStopEvent = CreateEventA(0, TRUE, FALSE, 0);
         ControlPipeHandle =
             CreateNamedPipeA(ControlPipeName,                                       // Pipe Name
@@ -385,11 +388,11 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
         if (ThreadStopEvent) {
             BOOL success = SetEvent(ThreadStopEvent);
-			if (success) {
-				SendToServer("ThreadStopEvent Set\n");
-			} else {
-				SendToServer("ThreadStopEvent Set Failed\n");
-			}
+            if (success) {
+                SendToServer("ThreadStopEvent Set\n");
+            } else {
+                SendToServer("ThreadStopEvent Set Failed\n");
+            }
         }
 
         if (ThreadHandle) {
@@ -399,7 +402,7 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
                     SendToServer("Normal Stopping, from DllMain\n");
                 } break;
 
-				case (WAIT_ABANDONED):
+                case (WAIT_ABANDONED):
                 case (WAIT_FAILED): {
                     SendToServer("Dangerous stopping, from DllMain\n");
                     SendToServer("The Wait Failed for some reason stopping the thread. dll main\n");
