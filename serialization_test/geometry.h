@@ -48,13 +48,13 @@ typedef struct {
 } Scene;
 
 typedef enum {
-    ST_Point2D,
-    ST_Color,
-    ST_Line,
-    ST_Circle,
-    ST_ShapeData,
-    ST_Shape,
-    ST_Scene,
+    T_Point2D,
+    T_Color,
+    T_Line,
+    T_Circle,
+    T_ShapeData,
+    T_Shape,
+    T_Scene,
 } GeometryType;
 
 #endif
