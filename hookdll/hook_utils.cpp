@@ -16,7 +16,7 @@ static thread_local int64_t            PerfCounterFrequency = 0;
 static thread_local double             TimeElapsed          = 0;
 static thread_local uint8_t           *HookBuffer           = NULL;
 static thread_local size_t             HookBufferHead       = 0;
-static thread_local std::ostringstream logs;
+static thread_local std::ostringstream Logger;
 
 static std::atomic<bool> StopBeforeCall{true};
 static std::atomic<bool> StopAfterCall{true};
@@ -24,12 +24,14 @@ static std::atomic<bool> Break{false};
 
 static HANDLE HookPipeHandle    = INVALID_HANDLE_VALUE;
 static HANDLE ControlPipeHandle = INVALID_HANDLE_VALUE;
+static HANDLE LogPipeHandle     = INVALID_HANDLE_VALUE;
 
 static HANDLE ThreadHandle    = 0;
 static HANDLE ThreadStopEvent = 0;
 
 const LPCSTR HookPipeName    = TEXT("\\\\.\\pipe\\P7_HOOKS");
 const LPCSTR ControlPipeName = TEXT("\\\\.\\pipe\\P7_CONTROLS");
+const LPCSTR LogPipeName     = TEXT("\\\\.\\pipe\\P7_LOGS");
 
 #define BUFFER_SIZE (1024 * 1024 * 2)
 
@@ -38,7 +40,7 @@ const LPCSTR ControlPipeName = TEXT("\\\\.\\pipe\\P7_CONTROLS");
 
 
 // ---------------------------------------------------------------------------------------------- //
-// Sending to the UI ---------------------------------------------------------------------------- //
+// Sending to P7 -------------------------------------------------------------------------------- //
 // ---------------------------------------------------------------------------------------------- //
 
 static void
@@ -56,10 +58,11 @@ SendHookBuffer(uint8_t *buffer, size_t len) {
     DWORD bytesWritten = 0;
     WriteFile(HookPipeHandle, buffer, (DWORD)len, &bytesWritten, NULL);
     ZeroMemory(buffer, BUFFER_SIZE);
+    HookBufferHead = 0;
 }
 
 static void
-SendToServer(const char *text) {
+SendLog(const char *text) {
     if (HookPipeHandle == INVALID_HANDLE_VALUE) {
         HookPipeHandle = CreateFileA(HookPipeName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
@@ -74,7 +77,14 @@ SendToServer(const char *text) {
     WriteFile(HookPipeHandle, text, (DWORD)strlen(text) + 1, &bytesWritten, NULL);
 }
 
-
+#define LOG(expr)                                                                                  \
+    do {                                                                                           \
+        Logger.str("");                                                                            \
+        Logger.clear();                                                                            \
+        Logger << "[HOOK]" << expr << '\n';                                                        \
+        std::cerr << "[HOOK]" << expr << '\n';                                                     \
+        SendLog(Logger.str().c_str());                                                             \
+    } while (0)
 
 // ---------------------------------------------------------------------------------------------- //
 // Controls Listener ---------------------------------------------------------------------------- //
@@ -141,25 +151,25 @@ ControlListener(LPVOID lpParam) {
 
         switch (SignalByte) {
             case (START_SIG): {
-                SendToServer("Start signal\n");
+                LOG("Start signal\n");
             } break;
 
             case (STOP_SIG): {
                 StopBeforeCall.store(true);
                 StopAfterCall.store(true);
 
-                SendToServer("Stop signal\n");
+                LOG("Stop signal\n");
             } break;
 
             case (RESUME_SIG): {
                 StopBeforeCall.store(false);
                 StopAfterCall.store(false);
 
-                SendToServer("Resume signal\n");
+                LOG("Resume signal\n");
             } break;
 
             case (ABORT_SIG): {
-                SendToServer("Abort signal\n");
+                LOG("Abort signal\n");
                 std::cerr << "Aborting on p7's control signal\n";
 
                 ExitProcess('p' + 7); // Easter Egg
@@ -171,7 +181,7 @@ ControlListener(LPVOID lpParam) {
 
                 Break.store(true);
 
-                SendToServer("Step to end of call signal\n");
+                LOG("Step to end of call signal\n");
             } break;
 
             case (STSC_SIG): {
@@ -180,7 +190,7 @@ ControlListener(LPVOID lpParam) {
 
                 Break.store(true);
 
-                SendToServer("Step to start of call signal\n");
+                LOG("Step to start of call signal\n");
             } break;
 
             case (0): {
@@ -233,42 +243,6 @@ ControlAfter() {
     }
     Break.store(false);
 }
-
-
-// ---------------------------------------------------------------------------------------------- //
-// Hook Sending Utilities ----------------------------------------------------------------------- //
-// ---------------------------------------------------------------------------------------------- //
-
-void
-AllocateHookBuffer() {
-
-    HookBuffer =
-        (uint8_t *)VirtualAlloc(NULL, BUFFER_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-
-    if (HookBuffer == NULL) {
-        printf("VirtualAlloc failed with error %lu\n", GetLastError());
-        return;
-    }
-
-    printf("allocated \n");
-}
-
-void
-FreeHookBuffer() {
-    if (!VirtualFree(HookBuffer, 0, MEM_RELEASE)) {
-        printf("VirtualFree failed with error %lu\n", GetLastError());
-        return;
-    }
-    printf("\nfreed \n");
-}
-
-void
-delimiter(size_t *buffer_head) {
-    HookBuffer[*buffer_head] = 0x01E;
-    (*buffer_head)++;
-}
-
-// ---------------------------------------------------------------------------------------------- //
 
 
 // ---------------------------------------------------------------------------------------------- //

@@ -26,7 +26,6 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 
     SEND_AFTER_CALL("MessageBoxA", { BOIL_INT32(result); })
 
-
     return result;
 }
 // --------------------------------------------------------------------------------------------- //
@@ -291,7 +290,6 @@ __declspec(dllexport) BOOL APIENTRY
 DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
     if (reason == DLL_PROCESS_ATTACH) {
-        AllocateHookBuffer();
 
         DetourRestoreAfterWith();
         DetourTransactionBegin();
@@ -357,22 +355,29 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
         // Why Log when process is yet to attach
         IsHookingOn = true;
-        SendToServer("\"STARTED\"\n");
+
+        HookBuffer =
+            (uint8_t *)VirtualAlloc(NULL, BUFFER_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        if (HookBuffer == NULL) {
+            std::cerr << "VirtualAlloc failed with error: " << GetLastError() << '\n';
+            exit(3);
+        }
+        std::cerr << "Allocated Hook Buffer\n";
+
+        LOG("STARTED");
 
     } else if (reason == DLL_PROCESS_DETACH) {
 
-        SendToServer("\"ENDED\"\n");
         IsHookingOn = false;
-        // Why Log when process detached
+        VirtualFree(HookBuffer, 0, MEM_RELEASE);
 
         // Unrolling Control Pipe Thread ------------------------------------------------ //
-
         if (ThreadStopEvent) {
             BOOL success = SetEvent(ThreadStopEvent);
             if (success) {
-                SendToServer("ThreadStopEvent Set\n");
+                LOG("ThreadStopEvent Set");
             } else {
-                SendToServer("ThreadStopEvent Set Failed\n");
+                LOG("ThreadStopEvent Set Failed");
             }
         }
 
@@ -380,14 +385,14 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
             DWORD wait = WaitForSingleObject(ThreadHandle, 150);
             switch (wait) {
                 case (WAIT_OBJECT_0): {
-                    SendToServer("Normal Stopping, from DllMain\n");
+                    LOG("Normal Stopping, from DllMain\n");
                 } break;
 
                 case (WAIT_ABANDONED):
                 case (WAIT_FAILED): {
-                    SendToServer("Dangerous stopping, from DllMain\n");
-                    SendToServer("The Wait Failed for some reason stopping the thread. dll main\n");
-                    std::cerr << "HERE IS THE WAIT FAILED ERROR: " << GetLastError() << '\n';
+                    LOG("Dangerous stopping, from DllMain\n");
+                    LOG("The Wait Failed for some reason stopping the thread. dll main\n");
+                    LOG("HERE IS THE WAIT FAILED ERROR: " << GetLastError());
                 } break;
 
                 case (WAIT_TIMEOUT):
@@ -433,7 +438,11 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
         DetourTransactionCommit();
 
-        FreeHookBuffer();
+        LOG("ENDED");
+        if (LogPipeHandle != INVALID_HANDLE_VALUE) {
+            CloseHandle(LogPipeHandle);
+            LogPipeHandle = INVALID_HANDLE_VALUE;
+        }
     }
 
     return TRUE;

@@ -1,5 +1,5 @@
-#ifndef BASE_TYPES_H
-#define BASE_TYPES_H
+#ifndef SERIALIZATION_H
+#define SERIALIZATION_H
 // ---------------------------------------------------------------------------------------------- //
 
 #include <cstdint>
@@ -27,19 +27,26 @@ Serialize(void *val, size_t *buffer_head, uint8_t *buffer, size_t size) {
     for (size_t i = 0; i < size; i++) {
 
         if (BUFFER_SIZE <= *buffer_head) {
-            fprintf(stderr, "Buffer size exceeded!\n");
+            LOG("Buffer size exceeded!, terminating");
             exit(1);
         }
 
         buffer[(*buffer_head)] = byte_ptr[i];
         (*buffer_head)++;
     }
+
+#if 0
+    HookBuffer[HookBufferHead] = 0x1E;
+    HookBufferHead++;
+#endif
 }
 
 
 inline void
 StrCpy(char *s) {
     Serialize((void *)s, &HookBufferHead, HookBuffer, strlen(s));
+    HookBuffer[HookBufferHead] = '\0';
+    HookBufferHead++;
 }
 
 void
@@ -71,6 +78,56 @@ InitHookRet(char *id) {
     StrCpy(id);
 }
 
+inline void
+BOIL_int8(int8_t val) {
+    Serialize(&val, &HookBufferHead, HookBuffer, sizeof(int8_t));
+}
+
+inline void
+BOIL_int16(int16_t val) {
+    Serialize(&val, &HookBufferHead, HookBuffer, sizeof(int16_t));
+}
+
+inline void
+BOIL_int32(int32_t val) {
+    Serialize(&val, &HookBufferHead, HookBuffer, sizeof(int32_t));
+}
+
+inline void
+BOIL_int64(int64_t val) {
+    Serialize(&val, &HookBufferHead, HookBuffer, sizeof(int64_t));
+}
+
+inline void
+BOIL_uint8(uint8_t val) {
+    Serialize(&val, &HookBufferHead, HookBuffer, sizeof(uint8_t));
+}
+
+inline void
+BOIL_uint16(uint16_t val) {
+    Serialize(&val, &HookBufferHead, HookBuffer, sizeof(uint16_t));
+}
+
+inline void
+BOIL_uint32(uint32_t val) {
+    Serialize(&val, &HookBufferHead, HookBuffer, sizeof(uint32_t));
+}
+
+inline void
+BOIL_uint64(uint64_t val) {
+    Serialize(&val, &HookBufferHead, HookBuffer, sizeof(uint64_t));
+}
+
+inline void
+BOIL_float32(float val) {
+    Serialize(&val, &HookBufferHead, HookBuffer, sizeof(float));
+}
+
+inline void
+BOIL_float64(double val) {
+    Serialize(&val, &HookBufferHead, HookBuffer, sizeof(double));
+}
+
 // check for nullptr -------------------------------------------------------------- //
 // template <typename T>
 // T
@@ -99,44 +156,42 @@ std::string BOIL_HANDLE(HANDLE val);
 // with A
 void
 BOIL_ATOM(ATOM val) {
-    return (hexify(val));
+    BOIL_uint16(val);
 }
 
 // with B
 void
 BOIL_BOOL(BOOL val) {
-    return hexify(val);
+    BOIL_int32(val);
 }
 
 void
 BOIL_BOOLEAN(BOOLEAN val) {
-    return hexify(val);
+    BOIL_uint8(val);
 }
 
 void
 BOIL_BYTE(BYTE val) {
-    void str(1, val);
-    return str;
+    BOIL_uint8(val);
 }
 
 // with C
 void
 BOIL_CCHAR(CCHAR val) {
-    void str(1, val);
-    return str;
+    BOIL_int8(val);
 }
 
 void
 BOIL_CHAR(CHAR val) {
-    void str(1, val);
-    return str;
+    BOIL_int8(val);
 }
 
 void
 BOIL_COLORREF(COLORREF val) {
-    return _hexify(val);
+    BOIL_uint32(val);
 }
 
+/*
 // with D
 void
 BOIL_DWORD(DWORD val) {
@@ -321,12 +376,14 @@ void
 BOIL_HSZ(HSZ val) {
     return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
 }
+*/
 
 void
 BOIL_HWND(HWND val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+	BOIL_uint64((uint64_t)val);
 }
 
+/*
 void
 BOIL_SC_HANDLE(SC_HANDLE val) {
     return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
@@ -381,14 +438,14 @@ void
 BOIL_INT16(INT16 val) {
     return hexify(val);
 }
+*/
 
 void
 BOIL_INT32(INT32 val) {
-    size = sizeof(val);
-    con_to_byte(&val, &HookBufferHead, HookBuffer, &size);
-    return "";
+	BOIL_int32(val);
 }
 
+/*
 void
 BOIL_INT64(INT64 val) {
     return hexify(val);
@@ -469,15 +526,14 @@ void
 BOIL_LPBYTE(LPBYTE val) {
     return BOIL_BYTE(inspect(val));
 }
+*/
 
 void
 BOIL_LPCSTR(LPCSTR val) {
-    size = strlen(val);
-    con_to_byte((void *)val, &HookBufferHead, HookBuffer, &size);
-    delimiter(&HookBufferHead);
-    return "";
+	StrCpy((char *)val);
 }
 
+/*
 // std::wstring
 // BOIL_LPCWSTR(LPCWSTR val) {
 //     std::wstring result;
@@ -736,8 +792,6 @@ BOIL_QWORD(QWORD val) {
     return hexify(val);
 }
 
-// -----------------------------------------/*/
-
 
 // with S
 
@@ -785,15 +839,14 @@ void
 BOIL_UHALF_PTR(UHALF_PTR val) {
     return hexify(val);
 }
+*/
 
 void
 BOIL_UINT(UINT val) {
-    size = sizeof(UINT);
-    con_to_byte((void *)&val, &HookBufferHead, HookBuffer, &size);
-    delimiter(&HookBufferHead);
-    return "";
+	BOIL_uint32(val);
 }
 
+/*
 void
 BOIL_UINT_PTR(UINT_PTR val) {
     return hexify(val);
@@ -993,6 +1046,7 @@ BOIL_PWORD(PWORD val) {
 //     }
 //     return result;
 // }
+*/
 
 #if 0
 int main() {
