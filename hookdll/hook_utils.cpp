@@ -9,28 +9,38 @@
 #include <atomic>
 
 
-static thread_local unsigned long GlobalCallDepth = 0;
-static thread_local unsigned long GlobalMaxCallDepth = 0;
+static thread_local uint64_t           GlobalCallDepth      = 0;
+static thread_local uint64_t           GlobalMaxCallDepth   = 0;
+static thread_local bool               IsHookingOn          = false;
+static thread_local int64_t            PerfCounterFrequency = 0;
+static thread_local double             TimeElapsed          = 0;
+static thread_local uint8_t           *HookBuffer           = NULL;
+static thread_local size_t             HookBufferHead       = 0;
 static thread_local std::ostringstream logs;
-static thread_local bool IsLoggingOn = false;
-static thread_local int64_t PerfCounterFrequency = 0;
-static thread_local double TimeElapsed = 0;
 
-// static std::atomic<bool> Running{false};
 static std::atomic<bool> StopBeforeCall{true};
 static std::atomic<bool> StopAfterCall{true};
 static std::atomic<bool> Break{false};
 
-static HANDLE HookPipeHandle = INVALID_HANDLE_VALUE;
+static HANDLE HookPipeHandle    = INVALID_HANDLE_VALUE;
 static HANDLE ControlPipeHandle = INVALID_HANDLE_VALUE;
 
-static HANDLE ThreadHandle = 0;
+static HANDLE ThreadHandle    = 0;
 static HANDLE ThreadStopEvent = 0;
 
-const LPCSTR HookPipeName = TEXT("\\\\.\\pipe\\P7_HOOKS");
+const LPCSTR HookPipeName    = TEXT("\\\\.\\pipe\\P7_HOOKS");
 const LPCSTR ControlPipeName = TEXT("\\\\.\\pipe\\P7_CONTROLS");
 
+#define BUFFER_SIZE (1024 * 1024 * 2)
+
+#define HOOK_CALL_ID 0x82
+#define HOOK_RET_ID  0x28
+
+
+// ---------------------------------------------------------------------------------------------- //
 // Sending to the UI ---------------------------------------------------------------------------- //
+// ---------------------------------------------------------------------------------------------- //
+
 static void
 SendHookBuffer(uint8_t *buffer, size_t len) {
     if (HookPipeHandle == INVALID_HANDLE_VALUE) {
@@ -45,6 +55,7 @@ SendHookBuffer(uint8_t *buffer, size_t len) {
 
     DWORD bytesWritten = 0;
     WriteFile(HookPipeHandle, buffer, (DWORD)len, &bytesWritten, NULL);
+    ZeroMemory(buffer, BUFFER_SIZE);
 }
 
 static void
@@ -65,7 +76,9 @@ SendToServer(const char *text) {
 
 
 
-// Thread to listen to control signals from the UI ---------------------------------------------- //
+// ---------------------------------------------------------------------------------------------- //
+// Controls Listener ---------------------------------------------------------------------------- //
+// ---------------------------------------------------------------------------------------------- //
 
 #define START_SIG  0x21
 #define STOP_SIG   0x22
@@ -111,7 +124,7 @@ ControlListener(LPVOID lpParam) {
         /* TODO: Dont know if we need overlapped io for this */
         // OVERLAPPED OverLapEvent = {};
         // OverLapEvent.hEvent = CreateEventA(0, TRUE, FALSE, 0);
-        BYTE SignalByte = 0;
+        BYTE  SignalByte      = 0;
         DWORD SignalBytesRead = 0;
 
         // BOOL ok = ReadFile(ControlPipeHandle, &SignalByte, sizeof(SignalByte), 0, &OverLapEvent);
@@ -184,8 +197,13 @@ ControlListener(LPVOID lpParam) {
     }
     return 0;
 }
+// ---------------------------------------------------------------------------------------------- //
 
-// Stepping Utilities --------------------------------------------------------- //
+
+
+// ---------------------------------------------------------------------------------------------- //
+// Stepping Utilities --------------------------------------------------------------------------- //
+// ---------------------------------------------------------------------------------------------- //
 
 static void
 ControlBefore() {
@@ -217,71 +235,68 @@ ControlAfter() {
 }
 
 
-// Logging Utilities --------------------------------------------------------- //
+// ---------------------------------------------------------------------------------------------- //
+// Hook Sending Utilities ----------------------------------------------------------------------- //
+// ---------------------------------------------------------------------------------------------- //
 
-static void
-start_json_before(const std::string &hookName) {
-    logs << "{\n";
-    logs << "  \"hook\": \"" << hookName << "\",\n";
-    logs << "  \"call_depth\": \"" << GlobalCallDepth << "\",\n";
-    logs << "  \"ARGS\": {\n";
+void
+AllocateHookBuffer() {
+
+    HookBuffer =
+        (uint8_t *)VirtualAlloc(NULL, BUFFER_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+    if (HookBuffer == NULL) {
+        printf("VirtualAlloc failed with error %lu\n", GetLastError());
+        return;
+    }
+
+    printf("allocated \n");
 }
 
-static void
-start_json_after(const std::string &hookName) {
-    logs << "{\n";
-    logs << "  \"hook\": \"" << hookName << "\",\n";
-    logs << "  \"call_depth\": \"" << GlobalCallDepth << "\",\n";
-    logs << "  \"time\": \"" << TimeElapsed << "us" << "\",\n";
-    logs << "  \"RETURNS\": {\n";
+void
+FreeHookBuffer() {
+    if (!VirtualFree(HookBuffer, 0, MEM_RELEASE)) {
+        printf("VirtualFree failed with error %lu\n", GetLastError());
+        return;
+    }
+    printf("\nfreed \n");
 }
 
-static void
-log_fields(const std::string &key, std::string val, bool last = false) {
-    logs << "    \"" << key << "\": \"" << std::hex << val << std::dec << "\"";
-
-    if (!last)
-        logs << ",";
-
-    logs << "\n";
+void
+delimiter(size_t *buffer_head) {
+    HookBuffer[*buffer_head] = 0x01E;
+    (*buffer_head)++;
 }
 
-static void
-end_json() {
-    logs << "  }\n";
-    logs << "}\n";
-}
 // ---------------------------------------------------------------------------------------------- //
 
 
 // ---------------------------------------------------------------------------------------------- //
-// THIS STUFF IS VERY IMPORTANT ----------------------------------------------------------------- //
-// ---------------------------------------------------------------------------------------------- //
-// The reason for keeping logs global is that we do not want to reallocate it again and again. -- //
-// It will then not reallocate memmory for the log all the time, we just clear it. -------------- //
+// Hook Macros ---------------------------------------------------------------------------------- //
 // ---------------------------------------------------------------------------------------------- //
 
-#define SEND_BEFORE_CALL(CODE)                                                                     \
-    if (GlobalCallDepth <= GlobalMaxCallDepth && IsLoggingOn) {                                    \
-        IsLoggingOn = false;                                                                       \
+#define SEND_BEFORE_CALL(ID, CODE)                                                                 \
+    if (GlobalCallDepth <= GlobalMaxCallDepth && IsHookingOn) {                                    \
+        InitHookCall((char *)ID);                                                                  \
+        IsHookingOn = false;                                                                       \
         CODE;                                                                                      \
-        SendHookBuffer(bytebuffer, bufferhead);                                                    \
+        SendHookBuffer(HookBuffer, HookBufferHead);                                                \
         ControlBefore();                                                                           \
-        IsLoggingOn = true;                                                                        \
+        IsHookingOn = true;                                                                        \
     }                                                                                              \
     GlobalCallDepth += 1;
 
-#define SEND_AFTER_CALL(CODE)                                                                      \
+#define SEND_AFTER_CALL(ID, CODE)                                                                  \
     GlobalCallDepth -= 1;                                                                          \
-    if (GlobalCallDepth <= GlobalMaxCallDepth && IsLoggingOn) {                                    \
-        IsLoggingOn = false;                                                                       \
+    if (GlobalCallDepth <= GlobalMaxCallDepth && IsHookingOn) {                                    \
+        InitHookRet((char *)ID);                                                                   \
+        IsHookingOn = false;                                                                       \
         CODE;                                                                                      \
-        SendHookBuffer(bytebuffer, bufferhead);                                                    \
+        SendHookBuffer(HookBuffer, HookBufferHead);                                                \
         ControlAfter();                                                                            \
-        IsLoggingOn = true;                                                                        \
+        IsHookingOn = true;                                                                        \
     }                                                                                              \
     TimeElapsed = 0.0f;
-
 
 
 #define TIME(CALL)                                                                                 \

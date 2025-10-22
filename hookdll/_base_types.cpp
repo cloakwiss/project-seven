@@ -13,7 +13,7 @@
 #include <cstdio>
 #include "serialized_mem.cpp"
 
-size_t size = 0;
+size_t                   size = 0;
 typedef unsigned __int64 QWORD;
 // Hex printing functions ------------------------------------------------------------- //
 
@@ -23,7 +23,7 @@ hexify(T val) {
     // Ensure it's an integral type
     static_assert(std::is_integral<T>::value, "T must be an integral type");
 
-    char buffer[20];
+    char   buffer[20];
     size_t type_size = sizeof(val);
 
     if (type_size <= sizeof(uint8_t)) {
@@ -73,18 +73,17 @@ inspect(T *ptr) {
 
 // Functions to handle different types -------------------------------------------- //
 
-// Dependent base_functions ------------------------------------------------------- //
-// std::wstring
-// BOIL_WCHAR(WCHAR val);
-
-std::string BOIL_CCHAR(CCHAR val);
-
-std::string BOIL_CHAR(CHAR val);
-
-std::string BOIL_HANDLE(HANDLE val);
-
+// Forward declaration for dependancy resolution ---------------------------------- //
+// std::wstring BOIL_WCHAR(WCHAR val);
+//
+// std::string BOIL_CCHAR(CCHAR val);
+//
+// std::string BOIL_CHAR(CHAR val);
+//
+// std::string BOIL_HANDLE(HANDLE val);
 // ------------------------------------------------------------------------------- //
 
+APIENTRY
 // with A
 std::string
 BOIL_ATOM(ATOM val) {
@@ -409,9 +408,9 @@ BOIL_LGRPID(LGRPID val) {
     return BOIL_DWORD(val);
 }
 
-// std::string BOIL_LPCOLORREF( LPCOLORREF val) {
-//     return BOIL_DWORD(inspect(val));
-// }
+std::string BOIL_LPCOLORREF( LPCOLORREF val) {
+    return BOIL_DWORD(inspect(val));
+}
 
 std::string
 BOIL_LPDWORD(LPDWORD val) {
@@ -982,34 +981,36 @@ BOIL_PWORD(PWORD val) {
 //     return result;
 // }
 
-// int main(){
+#if 0
+int main() {
 
-//     int a = 10;
-//     int * intptr = &a;
-//     void * val = &a;
+    int a = 10;
+    int * intptr = &a;
+    void * val = &a;
 
-//     const char* str;
-//     str = "Hello! from buffer";
-//     size_t size = strlen(str) ;
+    const char* str;
+    str = "Hello! from buffer";
+    size_t size = strlen(str) ;
 
-//     allocate_buffer();
+    allocate_buffer();
 
-//     BOIL_HANDLE(val);
-//     BOIL_UINT((uint32_t)a);
-//     BOIL_LPCSTR(str);
+    BOIL_HANDLE(val);
+    BOIL_UINT((uint32_t)a);
+    BOIL_LPCSTR(str);
 
-//     printf("address: %p\n", &a);
-//     printf("bufferhead: %d\n", bufferhead);
-//     for(size_t i = 0; i < bufferhead; i++){
-//         if(bytebuffer[i] == 0x01E) printf("%c ", '|');
-//         else
-//             printf("%x ", bytebuffer[i]);
-//     }
+    printf("address: %p\n", &a);
+    printf("bufferhead: %d\n", bufferhead);
+    for(size_t i = 0; i < bufferhead; i++){
+        if(bytebuffer[i] == 0x01E) printf("%c ", '|');
+        else
+            printf("%x ", bytebuffer[i]);
+    }
 
-//     free_buffer();
+    free_buffer();
 
-//     return 0;
-// }
+    return 0;
+}
+#endif
 
 // ---------------------------------------------------------------------------------------------- //
 #endif
