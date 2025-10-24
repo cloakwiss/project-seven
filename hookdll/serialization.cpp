@@ -53,7 +53,7 @@ void
 InitHookCall(char *id) {
     // call or ret
     uint8_t call_id = HOOK_CALL_ID;
-    Serialize(&call_id, &HookBufferHead, HookBuffer, sizeof(GlobalCallDepth));
+    Serialize(&call_id, &HookBufferHead, HookBuffer, sizeof(call_id));
 
     // depth
     Serialize(&GlobalCallDepth, &HookBufferHead, HookBuffer, sizeof(GlobalCallDepth));
@@ -66,7 +66,7 @@ void
 InitHookRet(char *id) {
     // call or ret
     uint8_t ret_id = HOOK_RET_ID;
-    Serialize(&ret_id, &HookBufferHead, HookBuffer, sizeof(GlobalCallDepth));
+    Serialize(&ret_id, &HookBufferHead, HookBuffer, sizeof(ret_id));
 
     // depth
     Serialize(&GlobalCallDepth, &HookBufferHead, HookBuffer, sizeof(GlobalCallDepth));
@@ -143,7 +143,7 @@ BOIL_float64(double val) {
 // Win32 value copy to buffer ------------------------------------------------------------------- //
 // ---------------------------------------------------------------------------------------------- //
 
-// Forward declaration for dependancy resolution ---------------------------------- //
+// Forward declaration for dependancy resolution ------------------------------------------------ //
 
 // std::wstring BOIL_WCHAR(WCHAR val);
 // std::string BOIL_CCHAR(CCHAR val);
@@ -151,7 +151,7 @@ BOIL_float64(double val) {
 
 std::string BOIL_HANDLE(HANDLE val);
 
-// ------------------------------------------------------------------------------- //
+// ---------------------------------------------------------------------------------------------- //
 
 // with A
 void

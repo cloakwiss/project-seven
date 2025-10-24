@@ -16,18 +16,19 @@ const (
 )
 
 type ApplicationState struct {
-	Ui            webview.WebView
-	TargetPath    string
-	HookDllPath   string
-	IsCoreRunning bool
-	Title         string
-	Port          string
-	InPipeName    string
-	OutPipeName   string
-	StepState     bool
-	Log           weblog.Logger
-	OutPipe       net.Conn
-	Page          Page
+	Ui              webview.WebView
+	TargetPath      string
+	HookDllPath     string
+	IsCoreRunning   bool
+	Title           string
+	Port            string
+	HookPipeName    string
+	ControlPipeName string
+	LogPipeName     string
+	StepState       bool
+	Log             weblog.Logger
+	ControlPipe     net.Conn
+	Page            Page
 }
 
 type Control byte

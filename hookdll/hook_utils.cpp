@@ -50,23 +50,24 @@ SendHookBuffer(uint8_t *buffer, size_t len) {
 
         if (HookPipeHandle == INVALID_HANDLE_VALUE) {
             DWORD LastError = GetLastError();
-            std::cerr << "Failed to open pipe. Error code: " << LastError << std::endl;
+            std::cout << "Failed to open pipe. Error code: " << LastError << std::endl;
             return;
         }
     }
 
     DWORD bytesWritten = 0;
     WriteFile(HookPipeHandle, buffer, (DWORD)len, &bytesWritten, NULL);
-    ZeroMemory(buffer, BUFFER_SIZE);
+    FlushFileBuffers(HookPipeHandle);
+    ZeroMemory(buffer, len);
     HookBufferHead = 0;
 }
 
 static void
 SendLog(const char *text) {
-    if (HookPipeHandle == INVALID_HANDLE_VALUE) {
-        HookPipeHandle = CreateFileA(HookPipeName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+    if (LogPipeHandle == INVALID_HANDLE_VALUE) {
+        LogPipeHandle = CreateFileA(LogPipeName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
-        if (HookPipeHandle == INVALID_HANDLE_VALUE) {
+        if (LogPipeHandle == INVALID_HANDLE_VALUE) {
             DWORD LastError = GetLastError();
             std::cerr << "Failed to open pipe. Error code: " << LastError << std::endl;
             return;
@@ -74,17 +75,19 @@ SendLog(const char *text) {
     }
 
     DWORD bytesWritten = 0;
-    WriteFile(HookPipeHandle, text, (DWORD)strlen(text) + 1, &bytesWritten, NULL);
+    WriteFile(LogPipeHandle, text, (DWORD)strlen(text) + 1, &bytesWritten, NULL);
+    FlushFileBuffers(LogPipeHandle);
 }
 
 #define LOG(expr)                                                                                  \
     do {                                                                                           \
         Logger.str("");                                                                            \
         Logger.clear();                                                                            \
-        Logger << "[HOOK]" << expr << '\n';                                                        \
-        std::cerr << "[HOOK]" << expr << '\n';                                                     \
+        Logger << "[HOOK] " << expr << '\n';                                                       \
+        std::cout << "[HOOK] " << expr << '\n';                                                    \
         SendLog(Logger.str().c_str());                                                             \
     } while (0)
+
 
 // ---------------------------------------------------------------------------------------------- //
 // Controls Listener ---------------------------------------------------------------------------- //
@@ -251,8 +254,8 @@ ControlAfter() {
 
 #define SEND_BEFORE_CALL(ID, CODE)                                                                 \
     if (GlobalCallDepth <= GlobalMaxCallDepth && IsHookingOn) {                                    \
-        InitHookCall((char *)ID);                                                                  \
         IsHookingOn = false;                                                                       \
+        InitHookCall((char *)ID);                                                                  \
         CODE;                                                                                      \
         SendHookBuffer(HookBuffer, HookBufferHead);                                                \
         ControlBefore();                                                                           \
@@ -263,8 +266,8 @@ ControlAfter() {
 #define SEND_AFTER_CALL(ID, CODE)                                                                  \
     GlobalCallDepth -= 1;                                                                          \
     if (GlobalCallDepth <= GlobalMaxCallDepth && IsHookingOn) {                                    \
-        InitHookRet((char *)ID);                                                                   \
         IsHookingOn = false;                                                                       \
+        InitHookRet((char *)ID);                                                                   \
         CODE;                                                                                      \
         SendHookBuffer(HookBuffer, HookBufferHead);                                                \
         ControlAfter();                                                                            \

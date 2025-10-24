@@ -37,10 +37,10 @@ func pickFile() (string, error) {
 
 func SendControl(p7 *app.ApplicationState, controlSignal app.Control) {
 
-	if p7.OutPipe != nil {
+	if p7.ControlPipe != nil {
 		b := []byte{byte(controlSignal)}
 		go func() {
-			_, err := p7.OutPipe.Write(b)
+			_, err := p7.ControlPipe.Write(b)
 
 			if err != nil {
 				p7.Log.Error("Write error: %v\n", err)
@@ -51,9 +51,9 @@ func SendControl(p7 *app.ApplicationState, controlSignal app.Control) {
 		}()
 
 	} else {
-		if !p7.IsCoreRunning && (p7.OutPipe == nil) {
+		if !p7.IsCoreRunning && (p7.ControlPipe == nil) {
 			p7.Log.Error("P7 is not running")
-		} else if p7.OutPipe == nil {
+		} else if p7.ControlPipe == nil {
 			p7.Log.Error("OutPipe is not connected")
 		}
 	}
@@ -64,13 +64,14 @@ func SendControl(p7 *app.ApplicationState, controlSignal app.Control) {
 func main() {
 
 	p7 := app.ApplicationState{
-		Title:         "P7",
-		IsCoreRunning: false,
-		Port:          "42069",
-		Page:          app.IndexPage,
-		InPipeName:    `\\.\pipe\P7_HOOKS`,
-		OutPipeName:   `\\.\pipe\P7_CONTROLS`,
-		StepState:     true,
+		Title:           "P7",
+		IsCoreRunning:   false,
+		Port:            "42069",
+		Page:            app.IndexPage,
+		HookPipeName:    `\\.\pipe\P7_HOOKS`,
+		ControlPipeName: `\\.\pipe\P7_CONTROLS`,
+		LogPipeName:     `\\.\pipe\P7_LOGS`,
+		StepState:       true,
 	}
 
 	// Hosting the ui ----------------------------------------------------------------------------- //
@@ -139,23 +140,18 @@ func main() {
 		})
 
 		p7.Ui.Bind("Stop", func() {
-			p7.Log.Info("Stop clicked")
 			SendControl(&p7, app.Stop)
 		})
 
 		p7.Ui.Bind("Resume", func() {
-			p7.Log.Info("Resume clicked")
 			SendControl(&p7, app.Resume)
 		})
 
 		p7.Ui.Bind("Abort", func() {
-			p7.Log.Info("Abort clicked")
 			SendControl(&p7, app.Abort)
 		})
 
 		p7.Ui.Bind("Step", func() {
-			p7.Log.Info("Step clicked")
-
 			if p7.StepState {
 				SendControl(&p7, app.STEC)
 			} else {
@@ -167,7 +163,6 @@ func main() {
 		})
 
 		p7.Ui.Bind("STEC", func() {
-			p7.Log.Info("STEC clicked")
 			SendControl(&p7, app.STEC)
 
 			// To properly fall into the next call start
@@ -175,7 +170,6 @@ func main() {
 		})
 
 		p7.Ui.Bind("STSC", func() {
-			p7.Log.Info("STSC clicked")
 			SendControl(&p7, app.STSC)
 
 			// To properly fall into the next call end
@@ -190,48 +184,7 @@ func main() {
 
 	// -------------------------------------------------------------------------------------------- //
 
-	// Log to the ui console not the stdout/stderr
-	p7.Log.Debug("Ui Started")
-
-	// Testing Utilities -------------------------------------------------------------------------- //
-	// go func() {
-	// 	for {
-	// 		time.Sleep(500 * time.Millisecond)
-	// 		tst := fmt.Sprintf("Server time: %v\n", time.Now())
-	// 		doman.AppendTextById("console-output", tst, &w)
-	// 	}
-	// }()
-	// tble := `
-	// <div class="table-container" id="divForTable">
-	//   <table class="table-styled">
-	//     <thead>
-	//       <tr>
-	//         <th>ID</th><th>Name</th><th>Department</th><th>Role</th><th>Location</th><th>Email</th><th>Phone</th>
-	//       </tr>
-	//     </thead>
-	//     <tbody>
-	//       <tr data-row-id="1">
-	//         <td>1</td><td>Alice Johnson</td><td>Engineering</td><td>Software Engineer</td><td>New York</td><td>alice.johnson@example.com</td><td>+1-202-555-0123</td>
-	//       </tr>
-	//       <tr data-row-id="2">
-	//         <td>2</td><td>Bob Smith</td><td>Marketing</td><td>Content Strategist</td><td>San Francisco</td><td>bob.smith@example.com</td><td>+1-415-555-0456</td>
-	//       </tr>
-	//       <tr data-row-id="3">
-	//         <td>3</td><td>Charlie Lee</td><td>Sales</td><td>Account Manager</td><td>Chicago</td><td>charlie.lee@example.com</td><td>+1-312-555-0789</td>
-	//       </tr>
-	//       <tr data-row-id="4">
-	//         <td>4</td><td>Diana Prince</td><td>Product</td><td>Product Manager</td><td>London</td><td>diana.prince@example.co.uk</td><td>+44-20-7946-0958</td>
-	//       </tr>
-	//       <tr data-row-id="5">
-	//         <td>5</td><td>Eddie Hernandez</td><td>Support</td><td>Support Lead</td><td>Sydney</td><td>eddie.hernandez@example.com.au</td><td>+61-2-9374-1234</td>
-	//       </tr>
-	//     </tbody>
-	//   </table>
-	// </div>
-	// `
-	// id := "system-log"
-	// doman.InsertHtmlById(id, tble, &w)
-	// -------------------------------------------------------------------------------------------- //
+	p7.Log.Debug("P7 Started")
 
 	wg.Wait()
 }

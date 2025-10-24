@@ -3,47 +3,55 @@ package core
 import (
 	"bufio"
 	"context"
-	// "fmt"
+	"encoding/hex"
+	"fmt"
+	"net"
 	"os/exec"
 	"runtime"
 	"time"
 
 	"ui/app"
-	// "ui/doman"
+	"ui/doman"
 	"ui/inject"
 
 	"github.com/Microsoft/go-winio"
 )
 
-func handleClient(p7 *app.ApplicationState, conn any) {
+func handleHookClient(p7 *app.ApplicationState, conn net.Conn) {
 
-	defer func() {
-		if c, ok := conn.(interface{ Close() error }); ok {
-			c.Close()
+	runtime.LockOSThread()
+	defer conn.Close()
+
+	buf := make([]byte, 1024*1024*2)
+
+	for {
+		n, err := conn.Read(buf)
+		if n > 0 {
+			html := fmt.Sprintf("Bytes from Hook: \n%v", hex.Dump(buf[:n]))
+			doman.AppendTextById("hook-status", html, &p7.Ui)
 		}
-	}()
-
-	reader, ok := conn.(interface{ Read([]byte) (int, error) })
-	if !ok {
-		p7.Log.Error("Invalid connection type")
-		return
+		if err != nil {
+			p7.Log.Error("Read error or EOF for hook: %v\n", err)
+			break
+		}
 	}
+}
 
-	scanner := bufio.NewScanner(reader)
-	i := 0
-	for scanner.Scan() {
-		// text := scanner.Text()
-		//
-		// html := fmt.Sprintf("\"%d\": %s\n", i, text)
-		// doman.AppendTextById("hook-status", html, &p7.Ui)
-		bytes := scanner.Bytes()
-		p7.Log.Info("Bytes from Hook: (%v)", bytes)
+func handleLogClient(p7 *app.ApplicationState, conn net.Conn) {
 
-		i += 1
-	}
+	defer conn.Close()
 
-	if err := scanner.Err(); err != nil {
-		p7.Log.Error("Read error: %v", err)
+	buf := make([]byte, 1024*1024*2)
+
+	for {
+		n, err := conn.Read(buf)
+		if n > 0 {
+			p7.Log.Info("%s", string(buf[:n]))
+		}
+		if err != nil {
+			p7.Log.Error("Read error or EOF for log: %v\n", err)
+			break
+		}
 	}
 }
 
@@ -60,23 +68,29 @@ func Launch(p7 *app.ApplicationState) {
 	pipeCfg := &winio.PipeConfig{
 		SecurityDescriptor: "",
 		MessageMode:        true,
-		InputBufferSize:    256,
+		InputBufferSize:    1024 * 1024,
 		OutputBufferSize:   256,
 	}
 
-	listener, err := winio.ListenPipe(p7.InPipeName, pipeCfg)
+	logListener, err := winio.ListenPipe(p7.LogPipeName, pipeCfg)
 	if err != nil {
 		p7.Log.Fatal("Failed to create pipe: %v", err)
 	}
-	defer listener.Close()
+	defer logListener.Close()
+
+	hookListener, err := winio.ListenPipe(p7.HookPipeName, pipeCfg)
+	if err != nil {
+		p7.Log.Fatal("Failed to create pipe: %v", err)
+	}
+	defer hookListener.Close()
 
 	// Waiting for Target to spawn the listener for controls ----------- //
 	notEnded := true
 	go func() {
-		for p7.OutPipe == nil && notEnded {
+		for p7.ControlPipe == nil && notEnded {
 			timeout := 5 * time.Second
 			var err error
-			p7.OutPipe, err = winio.DialPipe(p7.OutPipeName, &timeout)
+			p7.ControlPipe, err = winio.DialPipe(p7.ControlPipeName, &timeout)
 			if err == nil {
 				p7.Log.Info("Connected the control pipe")
 				break
@@ -139,18 +153,32 @@ func Launch(p7 *app.ApplicationState) {
 
 	p7.Log.Info("Waiting for Hook DLL...")
 	go func() {
-		runtime.LockOSThread()
 		for {
 			p7.Log.Debug("Looking for hook senders")
-			conn, err := listener.Accept()
+			conn, err := hookListener.Accept()
 			if err != nil {
-				p7.Log.Info("Listener stopped: %v", err)
+				p7.Log.Info("Hook Listener stopped: %v", err)
 				return
 			} else {
-				p7.Log.Debug("Listener Connected")
+				p7.Log.Debug("Hook Listener Connected")
 			}
 
-			handleClient(p7, conn)
+			go handleHookClient(p7, conn)
+		}
+	}()
+
+	go func() {
+		for {
+			p7.Log.Debug("Looking for log senders")
+			conn, err := logListener.Accept()
+			if err != nil {
+				p7.Log.Info("Log Listener stopped: %v", err)
+				return
+			} else {
+				p7.Log.Debug("Log Listener Connected")
+			}
+
+			handleLogClient(p7, conn)
 		}
 	}()
 
@@ -159,8 +187,8 @@ func Launch(p7 *app.ApplicationState) {
 	<-ctx.Done()
 	notEnded = false
 	p7.IsCoreRunning = false
-	if p7.OutPipe != nil {
-		p7.OutPipe.Close()
-		p7.OutPipe = nil
+	if p7.ControlPipe != nil {
+		p7.ControlPipe.Close()
+		p7.ControlPipe = nil
 	}
 }
