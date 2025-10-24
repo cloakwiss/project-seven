@@ -29,6 +29,30 @@ type ApplicationState struct {
 	Log             weblog.Logger
 	ControlPipe     net.Conn
 	Page            Page
+	Hooks           HookList
+}
+
+type HookList struct {
+	CallList   []HookCall
+	ReturnList []HookReturns
+}
+
+type Values struct {
+	Name string
+	Val  any
+}
+
+type HookCall struct {
+	id    string
+	depth uint64
+	args  []Values
+}
+
+type HookReturns struct {
+	id      string
+	depth   uint64
+	time    float64
+	returns []Values
 }
 
 type Control byte

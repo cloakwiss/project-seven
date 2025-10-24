@@ -8,7 +8,7 @@ import (
 	// "reflect"
 )
 
-type StructField struct {
+type Values struct {
 	Name string
 	Val  any
 }
@@ -139,7 +139,7 @@ func Decode(buf []byte, head *int, value any) (any, error) {
 		*head++
 		return s, nil
 
-	case []StructField:
+	case []Values:
 		val := v
 		DecodeStructure(&val, buf, head)
 		return val, nil
@@ -162,7 +162,7 @@ func Decode(buf []byte, head *int, value any) (any, error) {
 	}
 }
 
-func DecodeStructure(structure *[]StructField, buffer []byte, head *int) {
+func DecodeStructure(structure *[]Values, buffer []byte, head *int) {
 	var err error
 	for i := range *structure {
 		(*structure)[i].Val, err = Decode(buffer, head, (*structure)[i].Val)

@@ -14,9 +14,9 @@ import (
 	"serialization_test/dsrl"
 )
 
-func NewPoint2D() []dsrl.StructField {
+func NewPoint2D() []dsrl.Values {
 	var x, y float32 = 0.0, 0.0
-	fields := make([]dsrl.StructField, 2)
+	fields := make([]dsrl.Values, 2)
 
 	fields[0].Name = "x"
 	fields[0].Val = x
@@ -27,9 +27,9 @@ func NewPoint2D() []dsrl.StructField {
 	return fields
 }
 
-func NewColor() []dsrl.StructField {
+func NewColor() []dsrl.Values {
 	var r, g, b uint8 = 0, 0, 0
-	fields := make([]dsrl.StructField, 3)
+	fields := make([]dsrl.Values, 3)
 
 	fields[0].Name = "r"
 	fields[0].Val = r
@@ -43,8 +43,8 @@ func NewColor() []dsrl.StructField {
 	return fields
 }
 
-func NewLine() []dsrl.StructField {
-	fields := make([]dsrl.StructField, 3)
+func NewLine() []dsrl.Values {
+	fields := make([]dsrl.Values, 3)
 
 	fields[0].Name = "start"
 	fields[0].Val = NewPoint2D()
@@ -58,8 +58,8 @@ func NewLine() []dsrl.StructField {
 	return fields
 }
 
-func NewCircle() []dsrl.StructField {
-	fields := make([]dsrl.StructField, 3)
+func NewCircle() []dsrl.Values {
+	fields := make([]dsrl.Values, 3)
 
 	fields[0].Name = "center"
 	fields[0].Val = NewPoint2D()
@@ -73,8 +73,8 @@ func NewCircle() []dsrl.StructField {
 	return fields
 }
 
-func NewShapeData() []dsrl.StructField {
-	fields := make([]dsrl.StructField, 3)
+func NewShapeData() []dsrl.Values {
+	fields := make([]dsrl.Values, 3)
 
 	fields[0].Name = "point"
 	fields[0].Val = nil
@@ -88,8 +88,8 @@ func NewShapeData() []dsrl.StructField {
 	return fields
 }
 
-func NewShape() []dsrl.StructField {
-	fields := make([]dsrl.StructField, 3)
+func NewShape() []dsrl.Values {
+	fields := make([]dsrl.Values, 3)
 
 	fields[0].Name = "type"
 	fields[0].Val = nil
@@ -103,11 +103,11 @@ func NewShape() []dsrl.StructField {
 	return fields
 }
 
-func NewScene(capShapes int) []dsrl.StructField {
-	fields := make([]dsrl.StructField, 2)
+func NewScene(capShapes int) []dsrl.Values {
+	fields := make([]dsrl.Values, 2)
 
 	// Shapes is a slice of dsrl.StructField slices
-	shapes := make([][]dsrl.StructField, capShapes)
+	shapes := make([][]dsrl.Values, capShapes)
 	for i := range shapes {
 		shapes[i] = NewShape()
 	}
@@ -134,20 +134,20 @@ func getBuffer() []byte {
 type HookCall struct {
 	name  string
 	depth uint64
-	args  []dsrl.StructField
+	args  []dsrl.Values
 }
 
 type HookReturn struct {
 	name    string
 	depth   uint64
 	time    float64
-	returns []dsrl.StructField
+	returns []dsrl.Values
 }
 
-func GetMesssageBoxHookCall() []dsrl.StructField {
+func GetMesssageBoxHookCall() []dsrl.Values {
 	var handle, utype uint32 = 0, 0
 	var text, caption string = "", ""
-	params := make([]dsrl.StructField, 4)
+	params := make([]dsrl.Values, 4)
 
 	params[0].Name = "hWnd"
 	params[0].Val = handle
@@ -164,9 +164,9 @@ func GetMesssageBoxHookCall() []dsrl.StructField {
 	return params
 }
 
-func GetMesssageBoxHookReturn() []dsrl.StructField {
+func GetMesssageBoxHookReturn() []dsrl.Values {
 	var result uint32 = 0
-	params := make([]dsrl.StructField, 1)
+	params := make([]dsrl.Values, 1)
 
 	params[0].Name = "result"
 	params[0].Val = result
