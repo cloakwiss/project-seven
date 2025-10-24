@@ -7,3 +7,6 @@
 [submodule "ntdoc-scrape"]
 	path = ntdoc-scrape
 	url = https://github.com/cloakwiss/ntdoc-scrape.git
+[submodule "webui"]
+	path = webui
+	url = https://github.com/cloakwiss/p7ui.git
