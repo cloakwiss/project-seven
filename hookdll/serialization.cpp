@@ -4,7 +4,6 @@
 
 #include <cstdint>
 #include <BaseTsd.h>
-#include <string>
 #include <windef.h>
 #include <windows.h>
 #include <winnt.h>
@@ -149,7 +148,7 @@ BOIL_float64(double val) {
 // std::string BOIL_CCHAR(CCHAR val);
 // std::string BOIL_CHAR(CHAR val);
 
-std::string BOIL_HANDLE(HANDLE val);
+void BOIL_HANDLE(HANDLE val);
 
 // ---------------------------------------------------------------------------------------------- //
 
@@ -191,202 +190,197 @@ BOIL_COLORREF(COLORREF val) {
     BOIL_uint32(val);
 }
 
-/*
 // with D
 void
 BOIL_DWORD(DWORD val) {
-    return _hexify(val);
+    BOIL_uint32(val);
 }
 
 void
 BOIL_DWORDLONG(DWORDLONG val) {
-    return hexify(val);
+    BOIL_uint64(val);
 }
 
 void
 BOIL_DWORD_PTR(DWORD_PTR val) {
-    return hexify(val);
+    BOIL_uint64(val);
 }
 
 void
 BOIL_DWORD32(DWORD32 val) {
-    return hexify(val);
+    BOIL_uint32(val);
 }
 
 void
 BOIL_DWORD64(DWORD64 val) {
-    return hexify(val);
+    BOIL_uint64(val);
 }
 
 // with F
 void
 BOIL_FLOAT(FLOAT val) {
-    return std::to_string(val);
+    BOIL_float32(val);
 }
 
 // with H
 void
 BOIL_HANDLE(HANDLE val) {
-    con_to_byteP((void *)&val, &HookBufferHead, HookBuffer);
-    delimiter(&HookBufferHead);
-    return "";
+    BOIL_uint64((uint64_t)val);
 }
 
 void
 BOIL_HACCEL(HACCEL val) {
-    return BOIL_HANDLE(val);
+    BOIL_uint64((uint64_t)val);
 }
 
 void
 BOIL_HALF_PTR(HALF_PTR val) {
-    return hexify(static_cast<uintptr_t>(val));
+    BOIL_int32(val);
 }
 
 void
 BOIL_HBITMAP(HBITMAP val) {
-    return BOIL_HANDLE(val);
+    BOIL_HANDLE(val);
 }
 
 void
 BOIL_HBRUSH(HBRUSH val) {
-    return BOIL_HANDLE(val);
+    BOIL_HANDLE(val);
 }
 
 void
 BOIL_HCOLORSPACE(HCOLORSPACE val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HCONV(HCONV val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HCONVLIST(HCONVLIST val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HDC(HDC val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HDDEDATA(HDDEDATA val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HDESK(HDESK val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HDROP(HDROP val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HDWP(HDWP val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HENHMETAFILE(HENHMETAFILE val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HFONT(HFONT val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HGDIOBJ(HGDIOBJ val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HGLOBAL(HGLOBAL val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HHOOK(HHOOK val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HICON(HICON val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HINSTANCE(HINSTANCE val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HKEY(HKEY val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HKL(HKL val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HLOCAL(HLOCAL val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HMENU(HMENU val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HMETAFILE(HMETAFILE val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HPALETTE(HPALETTE val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HPEN(HPEN val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HRGN(HRGN val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HRSRC(HRSRC val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HSZ(HSZ val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
-*/
 
 void
 BOIL_HWND(HWND val) {
-	BOIL_uint64((uint64_t)val);
+    BOIL_uint64((uint64_t)val);
 }
 
-/*
 void
 BOIL_SC_HANDLE(SC_HANDLE val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 // void BOIL_SERVICE_STATUS_HANDLE(SERVICE_STATUS_HANDLE val) {
@@ -395,145 +389,145 @@ BOIL_SC_HANDLE(SC_HANDLE val) {
 
 void
 BOIL_HCURSOR(HCURSOR val) {
-    return BOIL_HICON(val);
+    BOIL_HICON(val);
 }
 
 void
 BOIL_HFILE(HFILE val) {
-    return hexify(static_cast<int32_t>(val));
+    BOIL_int32(val);
 }
 
 void
 BOIL_HMODULE(HMODULE val) {
-    return BOIL_HINSTANCE(val);
+    BOIL_HINSTANCE(val);
 }
 
 void
 BOIL_HRESULT(HRESULT val) {
-    return hexify(static_cast<uintptr_t>(val));
+    BOIL_int32(val);
 }
 
 void
 BOIL_HMONITOR(HMONITOR val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 void
 BOIL_HWINSTA(HWINSTA val) {
-    return BOIL_HANDLE(reinterpret_cast<HANDLE>(val));
+    BOIL_HANDLE((HANDLE)val);
 }
 
 // with I
 void
 BOIL_INT(INT val) {
-    return hexify(val);
+    BOIL_int32(val);
 }
 
 void
 BOIL_INT8(INT8 val) {
-    return hexify(val);
+    BOIL_int8(val);
 }
 
 void
 BOIL_INT16(INT16 val) {
-    return hexify(val);
+    BOIL_int16(val);
 }
-*/
 
 void
 BOIL_INT32(INT32 val) {
-	BOIL_int32(val);
+    BOIL_int32(val);
 }
 
-/*
 void
 BOIL_INT64(INT64 val) {
-    return hexify(val);
+    BOIL_int64(val);
 }
 
 void
 BOIL_INT_PTR(INT_PTR val) {
-    return _hexify(val);
+    BOIL_int64(val);
 }
 
 // with L
 void
 BOIL_LANGID(LANGID val) {
-    return hexify(val);
+    BOIL_int16(val);
 }
 
 void
 BOIL_LCID(LCID val) {
-    return BOIL_DWORD(val);
+    BOIL_DWORD(val);
 }
 
 void
 BOIL_LCTYPE(LCTYPE val) {
-    return BOIL_DWORD(val);
+    BOIL_DWORD(val);
 }
 
 void
 BOIL_LGRPID(LGRPID val) {
-    return BOIL_DWORD(val);
+    BOIL_DWORD(val);
 }
 
 void
 BOIL_LPCOLORREF(LPCOLORREF val) {
-    return BOIL_DWORD(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_DWORD(*val);
 }
 
 void
 BOIL_LPDWORD(LPDWORD val) {
-    return BOIL_DWORD(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_DWORD(*val);
 }
 
 void
 BOIL_LONG(LONG val) {
-    return hexify(val);
+    BOIL_int32(val);
 }
 
 void
 BOIL_LONGLONG(LONGLONG val) {
-    return hexify(val);
+    BOIL_int64(val);
 }
 
 void
 BOIL_LONG_PTR(LONG_PTR val) {
-    return hexify(val);
+    BOIL_int64(val);
 }
 
 void
 BOIL_LONG32(LONG32 val) {
-    return hexify(val);
+    BOIL_int32(val);
 }
 
 void
 BOIL_LONG64(LONG64 val) {
-    return hexify(val);
+    BOIL_int64(val);
 }
 
 void
 BOIL_LPARAM(LPARAM val) {
-    return BOIL_LONG_PTR(val);
+    BOIL_LONG_PTR(val);
 }
 
 void
 BOIL_LPBOOL(LPBOOL val) {
-    return BOIL_BOOL(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_BOOL(*val);
 }
 
 void
 BOIL_LPBYTE(LPBYTE val) {
-    return BOIL_BYTE(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_BYTE(*val);
 }
-*/
 
 void
 BOIL_LPCSTR(LPCSTR val) {
-	StrCpy((char *)val);
+    StrCpy((char *)val);
 }
 
-/*
 // std::wstring
 // BOIL_LPCWSTR(LPCWSTR val) {
 //     std::wstring result;
@@ -557,32 +551,30 @@ BOIL_LPCSTR(LPCSTR val) {
 
 void
 BOIL_LPCVOID(LPCVOID val) {
-    return hexify(reinterpret_cast<uintptr_t>(val));
+    BOIL_uint64((uint64_t)val);
 }
 
 void
 BOIL_LPHANDLE(LPHANDLE val) {
-    return BOIL_HANDLE(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_HANDLE(*val);
 }
 
 void
 BOIL_LPINT(LPINT val) {
-    return hexify(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_int32(*val);
 }
 
 void
 BOIL_LPLONG(LPLONG val) {
-    return hexify(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_LONG(*val);
 }
 
 void
 BOIL_LPSTR(LPSTR val) {
-    void result;
-    while (*val) {
-        result += BOIL_CHAR(inspect(val));
-        ++val;
-    }
-    return result;
+    StrCpy(val);
 }
 
 // std::wstring
@@ -601,17 +593,18 @@ BOIL_LPSTR(LPSTR val) {
 
 void
 BOIL_LPVOID(LPVOID val) {
-    return hexify(reinterpret_cast<uintptr_t>(val));
+    BOIL_uint64((uint64_t)val);
 }
 
 void
 BOIL_LPWORD(LPWORD val) {
-    return hexify(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_uint16(*val);
 }
 
 void
 BOIL_LRESULT(LRESULT val) {
-    return BOIL_LONG_PTR(val);
+    BOIL_int64(val);
 }
 
 // // with W
@@ -623,43 +616,42 @@ BOIL_LRESULT(LRESULT val) {
 
 void
 BOIL_WORD(WORD val) {
-    return hexify(val);
+    BOIL_uint16(val);
 }
 
 void
 BOIL_WPARAM(WPARAM val) {
-    return hexify(val);
+    BOIL_uint64(val);
 }
 
 // with P
 void
 BOIL_PBOOL(PBOOL val) {
-    return BOIL_BOOL(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_BOOL(*val);
 }
 
 void
 BOIL_PBOOLEAN(PBOOLEAN val) {
-    return BOIL_BOOLEAN(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_BOOLEAN(*val);
 }
 
 void
 BOIL_PBYTE(PBYTE val) {
-    return BOIL_BYTE(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_BYTE(*val);
 }
 
 void
 BOIL_PCHAR(PCHAR val) {
-    return BOIL_CHAR(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_CHAR(*val);
 }
 
 void
 BOIL_PCSTR(PCSTR val) {
-    void result;
-    while (*val) {
-        result += BOIL_CHAR(inspect(val));
-        ++val;
-    }
-    return result;
+    StrCpy((char *)val);
 }
 
 // #ifdef UNICODE
@@ -685,57 +677,68 @@ BOIL_PCSTR(PCSTR val) {
 
 void
 BOIL_PDWORD(PDWORD val) {
-    return BOIL_DWORD(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_DWORD(*val);
 }
 
 void
 BOIL_PDWORDLONG(PDWORDLONG val) {
-    return BOIL_DWORDLONG(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_DWORDLONG(*val);
 }
 
 void
 BOIL_PDWORD_PTR(PDWORD_PTR val) {
-    return BOIL_DWORD_PTR(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_DWORD_PTR(*val);
 }
 
 void
 BOIL_PDWORD32(PDWORD32 val) {
-    return BOIL_DWORD32(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_DWORD32(*val);
 }
 
 void
 BOIL_PDWORD64(PDWORD64 val) {
-    return BOIL_DWORD64(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_DWORD64(*val);
 }
 
 void
 BOIL_PFLOAT(PFLOAT val) {
-    return BOIL_FLOAT(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_FLOAT(*val);
 }
 
 void
 BOIL_PHALF_PTR(PHALF_PTR val) {
-    return BOIL_HALF_PTR(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_HALF_PTR(*val);
 }
 
 void
 BOIL_PHANDLE(PHANDLE val) {
-    return BOIL_HANDLE(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_HANDLE(*val);
 }
 
 void
 BOIL_PHKEY(PHKEY val) {
-    return BOIL_HKEY(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_HKEY(*val);
 }
 
 void
 BOIL_PINT(PINT val) {
-    return BOIL_INT(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_INT(*val);
 }
 
 void
 BOIL_PINT_PTR(PINT_PTR val) {
-    return BOIL_INT_PTR(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_INT_PTR(*val);
 }
 
 // void BOIL_PINT8(PINT8 val){
@@ -748,48 +751,55 @@ BOIL_PINT_PTR(PINT_PTR val) {
 
 void
 BOIL_PINT32(PINT32 val) {
-    return BOIL_INT32(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_INT32(*val);
 }
 
 void
 BOIL_PINT64(PINT64 val) {
-    return BOIL_INT64(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_INT64(*val);
 }
 
 void
 BOIL_PLCID(PLCID val) {
-    return BOIL_PDWORD(val);
+    BOIL_uint64((uint64_t)val);
+    BOIL_LCID(*val);
 }
 
 void
 BOIL_PLONG(PLONG val) {
-    return BOIL_LONG(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_LONG(*val);
 }
 
 void
 BOIL_PLONGLONG(PLONGLONG val) {
-    return BOIL_LONGLONG(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_LONGLONG(*val);
 }
 
 void
 BOIL_PLONG_PTR(PLONG_PTR val) {
-    return BOIL_LONG_PTR(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_LONG_PTR(*val);
 }
 
 void
 BOIL_PLONG32(PLONG32 val) {
-    return BOIL_LONG32(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_LONG32(*val);
 }
 
 void
 BOIL_PLONG64(PLONG64 val) {
-    return BOIL_LONG64(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_LONG64(*val);
 }
-
 
 void
 BOIL_QWORD(QWORD val) {
-    return hexify(val);
+    BOIL_uint64(val);
 }
 
 
@@ -797,23 +807,23 @@ BOIL_QWORD(QWORD val) {
 
 void
 BOIL_SC_LOCK(SC_LOCK val) {
-    return BOIL_LPVOID(val);
+    BOIL_LPVOID(val);
 }
 
 
 void
 BOIL_SHORT(SHORT val) {
-    return hexify(val);
+    BOIL_uint16(val);
 }
 
 void
 BOIL_SIZE_T(SIZE_T val) {
-    return hexify(val);
+    BOIL_uint64(val);
 }
 
 void
 BOIL_SSIZE_T(SSIZE_T val) {
-    return BOIL_LONG_PTR(val);
+    BOIL_LONG_PTR(val);
 }
 
 // with T
@@ -831,107 +841,101 @@ BOIL_SSIZE_T(SSIZE_T val) {
 
 void
 BOIL_UCHAR(UCHAR val) {
-    void str(1, val);
-    return str;
+    BOIL_uint8(val);
 }
 
 void
 BOIL_UHALF_PTR(UHALF_PTR val) {
-    return hexify(val);
+    BOIL_uint32(val);
 }
-*/
 
 void
 BOIL_UINT(UINT val) {
-	BOIL_uint32(val);
+    BOIL_uint32(val);
 }
 
-/*
 void
 BOIL_UINT_PTR(UINT_PTR val) {
-    return hexify(val);
+    BOIL_uint64(val);
 }
 
 void
 BOIL_UINT8(UINT8 val) {
-    return hexify(val);
+    BOIL_uint8(val);
 }
 
 void
 BOIL_UINT16(UINT16 val) {
-    return hexify(val);
+    BOIL_uint16(val);
 }
 
 void
 BOIL_UINT32(UINT32 val) {
-    return hexify(val);
+    BOIL_uint32(val);
 }
 
 void
 BOIL_UINT64(UINT64 val) {
-    return hexify(val);
+    BOIL_uint64(val);
 }
 
 void
 BOIL_ULONG(ULONG val) {
-    return _hexify(val);
+    BOIL_uint32(val);
 }
 
 void
 BOIL_ULONGLONG(ULONGLONG val) {
-    return hexify(val);
+    BOIL_uint64(val);
 }
 
 void
 BOIL_ULONG_PTR(ULONG_PTR val) {
-    return hexify(val);
+    BOIL_uint64(val);
 }
 
 void
 BOIL_ULONG32(ULONG32 val) {
-    return hexify(val);
+    BOIL_uint32(val);
 }
 
 void
 BOIL_ULONG64(ULONG64 val) {
-    return hexify(val);
+    BOIL_uint64(val);
 }
 
 void
 BOIL_USHORT(USHORT val) {
-    return hexify(val);
+    BOIL_uint16(val);
 }
 
 void
 BOIL_USN(USN val) {
-    return BOIL_LONGLONG(val);
+    BOIL_LONGLONG(val);
 }
 
 // with P
-
 void
 BOIL_PSHORT(PSHORT val) {
-    return BOIL_SHORT(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_SHORT(*val);
 }
 
 void
 BOIL_PSIZE_T(PSIZE_T val) {
-    return BOIL_SIZE_T(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_SIZE_T(*val);
 }
 
 void
 BOIL_PSSIZE_T(PSSIZE_T val) {
-    return BOIL_SSIZE_T(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_SSIZE_T(*val);
 }
 
 void
 BOIL_PSTR(PSTR val) {
-    void result;
-    while (*val) {
-        result += BOIL_CHAR(inspect(val));
-        ++val;
-    }
-    return result;
+    StrCpy(val);
 }
 
 // void
@@ -946,32 +950,31 @@ BOIL_PSTR(PSTR val) {
 
 void
 BOIL_PTSTR(PTSTR val) {
-    void result;
-    while (*val) {
-        result += BOIL_CHAR(inspect(val));
-        ++val;
-    }
-    return result;
+	StrCpy(val);
 }
 
 void
 BOIL_PUCHAR(PUCHAR val) {
-    return BOIL_UCHAR(inspect(val));
+    BOIL_uint64((uint64_t)val);
+    BOIL_UCHAR(*val);
 }
 
 void
 BOIL_PUHALF_PTR(PUHALF_PTR val) {
-    return BOIL_UHALF_PTR(inspect(val));
+	BOIL_uint64((uint64_t)val);
+    BOIL_UHALF_PTR(*val);
 }
 
 void
 BOIL_PUINT(PUINT val) {
-    return BOIL_UINT(inspect(val));
+	BOIL_uint64((uint64_t)val);
+    BOIL_UINT(*val);
 }
 
 void
 BOIL_PUINT_PTR(PUINT_PTR val) {
-    return BOIL_UINT_PTR(inspect(val));
+	BOIL_uint64((uint64_t)val);
+    BOIL_UINT_PTR(*val);
 }
 
 // void BOIL_PUINT8(PUINT8 val){
@@ -984,47 +987,55 @@ BOIL_PUINT_PTR(PUINT_PTR val) {
 
 void
 BOIL_PUINT32(PUINT32 val) {
-    return BOIL_UINT32(inspect(val));
+	BOIL_uint64((uint64_t)val);
+    BOIL_UINT32(*val);
 }
 
 void
 BOIL_PUINT64(PUINT64 val) {
-    return BOIL_UINT64(inspect(val));
+	BOIL_uint64((uint64_t)val);
+    BOIL_UINT64(*val);
 }
 
 void
 BOIL_PULONG(PULONG val) {
-    return BOIL_ULONG(inspect(val));
+	BOIL_uint64((uint64_t)val);
+    BOIL_ULONG(*val);
 }
 
 void
 BOIL_PULONGLONG(PULONGLONG val) {
-    return BOIL_ULONGLONG(inspect(val));
+	BOIL_uint64((uint64_t)val);
+    BOIL_ULONGLONG(*val);
 }
 
 void
 BOIL_PULONG_PTR(PULONG_PTR val) {
-    return BOIL_ULONG_PTR(inspect(val));
+	BOIL_uint64((uint64_t)val);
+    BOIL_ULONG_PTR(*val);
 }
 
 void
 BOIL_PULONG32(PULONG32 val) {
-    return BOIL_ULONG32(inspect(val));
+	BOIL_uint64((uint64_t)val);
+    BOIL_ULONG32(*val);
 }
 
 void
 BOIL_PULONG64(PULONG64 val) {
-    return BOIL_ULONG64(inspect(val));
+	BOIL_uint64((uint64_t)val);
+    BOIL_ULONG64(*val);
 }
 
 void
 BOIL_PUSHORT(PUSHORT val) {
-    return BOIL_USHORT(inspect(val));
+	BOIL_uint64((uint64_t)val);
+    BOIL_USHORT(*val);
 }
 
 void
 BOIL_PVOID(PVOID val) {
-    return hexify(reinterpret_cast<uintptr_t>(val));
+	BOIL_uint64((uint64_t)val);
 }
 
 // std::wstring
@@ -1034,7 +1045,8 @@ BOIL_PVOID(PVOID val) {
 
 void
 BOIL_PWORD(PWORD val) {
-    return BOIL_WORD(inspect(val));
+	BOIL_uint64((uint64_t)val);
+    BOIL_WORD(*val);
 }
 
 // std::wstring
@@ -1046,7 +1058,6 @@ BOIL_PWORD(PWORD val) {
 //     }
 //     return result;
 // }
-*/
 
 #if 0
 int main() {
