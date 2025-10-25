@@ -1,2 +1,0 @@
-package weblog_test
-

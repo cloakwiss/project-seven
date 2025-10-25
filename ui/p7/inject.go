@@ -1,15 +1,15 @@
-package inject
+package p7
 
 import (
 	"fmt"
 	"os/exec"
-
-	"ui/app"
 )
 
 const InjecterEXE string = "../builds/debug/main.exe"
 
-func InjectDLL(p7 *app.ApplicationState) {
+// Inject the Hookdll from HookDllPath into
+// the Target app in the TargetPath
+func (p7 *ApplicationState) InjectDLL() {
 	HookdllPath := fmt.Sprintf("-d%s", p7.HookDllPath)
 	TargetPath := fmt.Sprintf("-e%s", p7.TargetPath)
 
@@ -26,7 +26,9 @@ func InjectDLL(p7 *app.ApplicationState) {
 	}
 }
 
-func RemoveDLL(p7 *app.ApplicationState) {
+// Remove the Hookdll from HookDllPath from
+// the Target app in the TargetPath
+func (p7 *ApplicationState) RemoveDLL() {
 	TargetPath := fmt.Sprintf("-e%s", p7.TargetPath)
 	spawn := exec.Command(
 		InjecterEXE,

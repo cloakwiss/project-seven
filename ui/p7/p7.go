@@ -1,4 +1,4 @@
-package app
+package p7
 
 import (
 	"encoding/hex"
@@ -7,8 +7,6 @@ import (
 	"net"
 
 	"ui/desirialize"
-	"ui/doman"
-	"ui/weblog"
 
 	"github.com/webview/webview_go"
 )
@@ -32,7 +30,7 @@ type ApplicationState struct {
 	ControlPipeName string
 	LogPipeName     string
 	StepState       bool
-	Log             weblog.Logger
+	Log             Logger
 	ControlPipe     net.Conn
 	Page            Page
 	Hooks           HookList
@@ -72,6 +70,40 @@ const (
 	HOOK_RET_ID  byte = 0x28
 )
 
+
+// Send Control Signal to hool dll
+//	 p7.Start  0x21
+//	 p7.Stop   0x22
+//	 p7.Resume 0x23
+//	 p7.Abort  0x24
+//	 p7.STEC   0x25
+//	 p7.STSC   0x26
+func (p7 *ApplicationState) SendControl(controlSignal Control) {
+	if p7.ControlPipe != nil {
+		b := []byte{byte(controlSignal)}
+		go func() {
+			_, err := p7.ControlPipe.Write(b)
+
+			if err != nil {
+				p7.Log.Error("Write error: %v\n", err)
+			}
+			// } else {
+			// 	p7.Log.Debug("Wrote Signal %d", controlSignal)
+			// }
+		}()
+
+	} else {
+		if !p7.IsCoreRunning && (p7.ControlPipe == nil) {
+			p7.Log.Error("P7 is not running")
+		} else if p7.ControlPipe == nil {
+			p7.Log.Error("OutPipe is not connected")
+		}
+	}
+}
+
+// --------------------------------------------------------------------------------------------- //
+// Template Getters (to be implemented generally for all funcs) -------------------------------- //
+// --------------------------------------------------------------------------------------------- //
 func GetCallStructure(id string) ([]desirialize.Values, error) {
 	if id == "MessageBoxA" {
 		args := make([]desirialize.Values, 4)
@@ -94,6 +126,25 @@ func GetCallStructure(id string) ([]desirialize.Values, error) {
 	}
 }
 
+func GetReturnStructure(id string) ([]desirialize.Values, error) {
+	if id == "MessageBoxA" {
+		args := make([]desirialize.Values, 1)
+
+		args[0].Name = "result"
+		args[0].Val = int32(0)
+
+		return args, nil
+	} else {
+		return nil, errors.New("Unimplemented function id")
+	}
+}
+
+// --------------------------------------------------------------------------------------------- //
+// Add Hooks ----------------------------------------------------------------------------------- //
+// --------------------------------------------------------------------------------------------- //
+
+// Desirializes the buffer accoriding to the id and adds hook call 
+// to the Call list in hooks
 func (Hooks *HookList) AddCall(p7 *ApplicationState, buffer []byte) {
 	head := int(0)
 	var call HookCall
@@ -129,19 +180,9 @@ func (Hooks *HookList) AddCall(p7 *ApplicationState, buffer []byte) {
 	Hooks.CallList = append(Hooks.CallList, call)
 }
 
-func GetReturnStructure(id string) ([]desirialize.Values, error) {
-	if id == "MessageBoxA" {
-		args := make([]desirialize.Values, 1)
 
-		args[0].Name = "result"
-		args[0].Val = int32(0)
-
-		return args, nil
-	} else {
-		return nil, errors.New("Unimplemented function id")
-	}
-}
-
+// Desirializes the buffer accoriding to the id and adds hook return 
+// to the Return list in hooks
 func (Hooks *HookList) AddReturn(p7 *ApplicationState, buffer []byte) {
 	head := int(0)
 	var ret HookReturns
@@ -184,13 +225,14 @@ func (Hooks *HookList) AddReturn(p7 *ApplicationState, buffer []byte) {
 	Hooks.ReturnList = append(Hooks.ReturnList, ret)
 }
 
+// Desirializes the buffer and adds the hook into the hooks list
 func (p7 *ApplicationState) AddHook(buffer []byte) {
 	p7.Log.Debug("Just Hook Buffer: \n%v", hex.Dump(buffer[1:]))
 	switch buffer[0] {
 	case HOOK_CALL_ID:
 		{
 			html := fmt.Sprintf("Hook Call Bytes: \n%v", hex.Dump(buffer[1:]))
-			doman.AppendTextById("hook-status", html, &p7.Ui)
+			AppendTextById("hook-status", html, &p7.Ui)
 			p7.Hooks.AddCall(p7, buffer[1:])
 			break
 		}
@@ -198,7 +240,7 @@ func (p7 *ApplicationState) AddHook(buffer []byte) {
 	case HOOK_RET_ID:
 		{
 			html := fmt.Sprintf("Hook Return Bytes: \n%v", hex.Dump(buffer[1:]))
-			doman.AppendTextById("hook-status", html, &p7.Ui)
+			AppendTextById("hook-status", html, &p7.Ui)
 			p7.Hooks.AddReturn(p7, buffer[1:])
 			break
 		}
@@ -210,3 +252,4 @@ func (p7 *ApplicationState) AddHook(buffer []byte) {
 		}
 	}
 }
+// --------------------------------------------------------------------------------------------- //

@@ -1,4 +1,4 @@
-package core
+package p7
 
 import (
 	"bufio"
@@ -10,16 +10,15 @@ import (
 	"runtime"
 	"time"
 
-	"ui/app"
-	"ui/inject"
-
 	"github.com/Microsoft/go-winio"
 )
 
 // ---------------------------------------------------------------------------------------------- //
 // Pipe Clients --------------------------------------------------------------------------------- //
 // ---------------------------------------------------------------------------------------------- //
-func handleHookClient(p7 *app.ApplicationState, conn net.Conn) {
+
+// Hand the hook pipe client connection
+func handleHookClient(p7 *ApplicationState, conn net.Conn) {
 	runtime.LockOSThread()
 	defer conn.Close()
 
@@ -37,7 +36,8 @@ func handleHookClient(p7 *app.ApplicationState, conn net.Conn) {
 	}
 }
 
-func handleLogClient(p7 *app.ApplicationState, conn net.Conn) {
+// Hand the hook log pipe client connection
+func handleLogClient(p7 *ApplicationState, conn net.Conn) {
 	defer conn.Close()
 
 	buf := make([]byte, 1024*1024*2)
@@ -59,7 +59,9 @@ func handleLogClient(p7 *app.ApplicationState, conn net.Conn) {
 // ---------------------------------------------------------------------------------------------- //
 // Spawing Target ------------------------------------------------------------------------------- //
 // ---------------------------------------------------------------------------------------------- //
-func spawnTarget(p7 *app.ApplicationState, cancel context.CancelFunc) {
+
+// Spawn the Target in the Target Path
+func spawnTarget(p7 *ApplicationState, cancel context.CancelFunc) {
 	spawn := exec.Command(p7.TargetPath)
 
 	stdoutPipe, err := spawn.StdoutPipe()
@@ -114,9 +116,11 @@ func spawnTarget(p7 *app.ApplicationState, cancel context.CancelFunc) {
 // ---------------------------------------------------------------------------------------------- //
 // Spawning Core -------------------------------------------------------------------------------- //
 // ---------------------------------------------------------------------------------------------- //
-func Launch(p7 *app.ApplicationState) {
-	inject.InjectDLL(p7)
-	defer inject.RemoveDLL(p7)
+
+// Lauch P7 and start logging hooks
+func (p7 *ApplicationState) Launch() {
+	p7.InjectDLL()
+	defer p7.RemoveDLL()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
