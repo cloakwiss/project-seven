@@ -54,7 +54,7 @@ if ($BuildHookDLL)
 
 if (!$DoNotRun)
 {
-	Push-Location "ui"
+	Push-Location "webui"
 	go run .
 	Pop-Location
 }
