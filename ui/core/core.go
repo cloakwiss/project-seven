@@ -28,7 +28,7 @@ func handleHookClient(p7 *app.ApplicationState, conn net.Conn) {
 	for {
 		n, err := conn.Read(buffer)
 		if n > 0 {
-			addHookCallRet(p7, buffer[:n])
+			p7.AddHook(buffer[:n])
 		}
 		if err != nil {
 			p7.Log.Error("Read error or EOF for hook: %v\n", err)

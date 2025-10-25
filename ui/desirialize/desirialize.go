@@ -1,11 +1,10 @@
-package dsrl
+package desirialize
 
 import (
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
-	// "reflect"
 )
 
 type Values struct {
@@ -13,27 +12,24 @@ type Values struct {
 	Val  any
 }
 
-// Give 4 bytes get a float32. or get garbage
+// bytesToFloat32 converts 4 bytes to a float32 using little-endian encoding.
 func bytesToFloat32(b []byte) float32 {
-	// fmt.Printf("float32 bytes: %v\n", b)
 	bits := binary.LittleEndian.Uint32(b)
 	return math.Float32frombits(bits)
 }
 
-// Give 8 bytes get a float64, or get garbage
+// bytesToFloat64 converts 8 bytes to a float64 using little-endian encoding.
 func bytesToFloat64(b []byte) float64 {
-	// fmt.Printf("float64 bytes: %v\n", b)
 	bits := binary.LittleEndian.Uint64(b)
 	return math.Float64frombits(bits)
 }
 
-// Decode returns a deserialized value of the given type (‘valueType’) by reading from buf at offset *head, and advances *head.
-// Strings are treated as C-strings (null-terminated). Integers and unsigned are unified.
+// Decode returns a deserialized value of the given type (‘valueType’) by reading from buf at offset *head,
+// and advances *head. Strings are treated as C-strings (null-terminated).
 func Decode(buf []byte, head *int, value any) (any, error) {
-
 	readBytes := func(n int) ([]byte, error) {
 		if *head+n > len(buf) {
-			return nil, fmt.Errorf("buffer overrun: need %d bytes, have %d", n, len(buf)-*head)
+			return nil, errors.New("buffer overrun: insufficient bytes in buffer")
 		}
 		b := buf[*head : *head+n]
 		*head += n
@@ -141,20 +137,26 @@ func Decode(buf []byte, head *int, value any) (any, error) {
 
 	case []Values:
 		val := v
-		DecodeStructure(&val, buf, head)
+		err := DecodeValue(&val, buf, head)
+		if err != nil {
+			return nil, err
+		}
 		return val, nil
 
 	default:
-		return nil, fmt.Errorf("unsupported kind %s", v)
+		return nil, errors.New("unsupported kind for Decode")
 	}
 }
 
-func DecodeStructure(structure *[]Values, buffer []byte, head *int) {
-	var err error
+// DecodeValue recursively decodes all entries in a slice of Values.
+func DecodeValue(structure *[]Values, buffer []byte, head *int) error {
 	for i := range *structure {
-		(*structure)[i].Val, err = Decode(buffer, head, (*structure)[i].Val)
+		val, err := Decode(buffer, head, (*structure)[i].Val)
 		if err != nil {
-			fmt.Printf("Error occured decoding the bufer: %v\n", err)
+			id := fmt.Sprintf(" Id: %d] ", i)
+			return errors.New("error decoding buffer: " + err.Error() + id)
 		}
+		(*structure)[i].Val = val
 	}
+	return nil
 }

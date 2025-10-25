@@ -24,9 +24,10 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
     int result;
     TIME({ result = TrueMessageBoxA(hWnd, lpText, lpCaption, uType); });
 
+	result = 24;
     SEND_AFTER_CALL("MessageBoxA", { BOIL_INT32(result); })
 
-    return result;
+    return 0;
 }
 // --------------------------------------------------------------------------------------------- //
 
