@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
+
 	// "syscall"
 	// "time"
 	// "strings"
@@ -14,7 +15,7 @@ import (
 	"ui/p7"
 
 	"github.com/sqweek/dialog"
-	"github.com/webview/webview_go"
+	webview "github.com/webview/webview_go"
 )
 
 // Random Utilities ----------------------------------------------------------------------------- //
@@ -42,7 +43,7 @@ func main() {
 		Port:            "42069",
 		Page:            p7.IndexPage,
 		HookPipeName:    `\\.\pipe\P7_HOOKS`,
-		ControlPipeName: `\\.\pipe\P5_CONTROLS`,
+		ControlPipeName: `\\.\pipe\P7_CONTROLS`,
 		LogPipeName:     `\\.\pipe\P7_LOGS`,
 		StepState:       true,
 	}
