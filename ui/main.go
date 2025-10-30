@@ -42,7 +42,7 @@ func main() {
 		Port:            "42069",
 		Page:            p7.IndexPage,
 		HookPipeName:    `\\.\pipe\P7_HOOKS`,
-		ControlPipeName: `\\.\pipe\P7_CONTROLS`,
+		ControlPipeName: `\\.\pipe\P5_CONTROLS`,
 		LogPipeName:     `\\.\pipe\P7_LOGS`,
 		StepState:       true,
 	}
@@ -69,7 +69,7 @@ func main() {
 
 		app.Ui = webview.New(true)
 		defer func() {
-			app.SendControl( p7.Abort)
+			app.SendControl(p7.Abort)
 			app.Ui.Destroy()
 		}()
 

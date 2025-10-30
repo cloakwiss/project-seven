@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net"
 
-	"ui/desirialize"
-
 	"github.com/webview/webview_go"
 )
 
@@ -70,14 +68,14 @@ const (
 	HOOK_RET_ID  byte = 0x28
 )
 
-
 // Send Control Signal to hool dll
-//	 p7.Start  0x21
-//	 p7.Stop   0x22
-//	 p7.Resume 0x23
-//	 p7.Abort  0x24
-//	 p7.STEC   0x25
-//	 p7.STSC   0x26
+//
+//	p7.Start  0x21
+//	p7.Stop   0x22
+//	p7.Resume 0x23
+//	p7.Abort  0x24
+//	p7.STEC   0x25
+//	p7.STSC   0x26
 func (p7 *ApplicationState) SendControl(controlSignal Control) {
 	if p7.ControlPipe != nil {
 		b := []byte{byte(controlSignal)}
@@ -143,7 +141,7 @@ func GetReturnStructure(id string) ([]desirialize.Values, error) {
 // Add Hooks ----------------------------------------------------------------------------------- //
 // --------------------------------------------------------------------------------------------- //
 
-// Desirializes the buffer accoriding to the id and adds hook call 
+// Desirializes the buffer accoriding to the id and adds hook call
 // to the Call list in hooks
 func (Hooks *HookList) AddCall(p7 *ApplicationState, buffer []byte) {
 	head := int(0)
@@ -180,8 +178,7 @@ func (Hooks *HookList) AddCall(p7 *ApplicationState, buffer []byte) {
 	Hooks.CallList = append(Hooks.CallList, call)
 }
 
-
-// Desirializes the buffer accoriding to the id and adds hook return 
+// Desirializes the buffer accoriding to the id and adds hook return
 // to the Return list in hooks
 func (Hooks *HookList) AddReturn(p7 *ApplicationState, buffer []byte) {
 	head := int(0)
@@ -252,4 +249,5 @@ func (p7 *ApplicationState) AddHook(buffer []byte) {
 		}
 	}
 }
+
 // --------------------------------------------------------------------------------------------- //
