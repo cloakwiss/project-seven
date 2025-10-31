@@ -1,4 +1,4 @@
-package desirialize
+package deserialize
 
 import (
 	"encoding/binary"

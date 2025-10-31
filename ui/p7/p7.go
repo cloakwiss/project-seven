@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/cloakwiss/project-seven/desirialize"
-
-	"github.com/webview/webview_go"
+	"github.com/cloakwiss/project-seven/deserialize"
+	webview "github.com/webview/webview_go"
 )
 
 type Page string
@@ -44,14 +43,14 @@ type HookList struct {
 type HookCall struct {
 	id    string
 	depth uint64
-	args  []desirialize.Values
+	args  []deserialize.Values
 }
 
 type HookReturns struct {
 	id      string
 	depth   uint64
 	time    float64
-	returns []desirialize.Values
+	returns []deserialize.Values
 }
 
 type Control byte
@@ -104,9 +103,9 @@ func (p7 *ApplicationState) SendControl(controlSignal Control) {
 // --------------------------------------------------------------------------------------------- //
 // Template Getters (to be implemented generally for all funcs) -------------------------------- //
 // --------------------------------------------------------------------------------------------- //
-func GetCallStructure(id string) ([]desirialize.Values, error) {
+func GetCallStructure(id string) ([]deserialize.Values, error) {
 	if id == "MessageBoxA" {
-		args := make([]desirialize.Values, 4)
+		args := make([]deserialize.Values, 4)
 
 		args[0].Name = "hWnd"
 		args[0].Val = uint64(0)
@@ -126,9 +125,9 @@ func GetCallStructure(id string) ([]desirialize.Values, error) {
 	}
 }
 
-func GetReturnStructure(id string) ([]desirialize.Values, error) {
+func GetReturnStructure(id string) ([]deserialize.Values, error) {
 	if id == "MessageBoxA" {
-		args := make([]desirialize.Values, 1)
+		args := make([]deserialize.Values, 1)
 
 		args[0].Name = "result"
 		args[0].Val = int32(0)
@@ -143,20 +142,20 @@ func GetReturnStructure(id string) ([]desirialize.Values, error) {
 // Add Hooks ----------------------------------------------------------------------------------- //
 // --------------------------------------------------------------------------------------------- //
 
-// Desirializes the buffer accoriding to the id and adds hook call
+// deserializes the buffer accoriding to the id and adds hook call
 // to the Call list in hooks
 func (Hooks *HookList) AddCall(p7 *ApplicationState, buffer []byte) {
 	head := int(0)
 	var call HookCall
 
-	depth, err := desirialize.Decode(buffer, &head, uint64(0))
+	depth, err := deserialize.Decode(buffer, &head, uint64(0))
 	if err != nil {
 		p7.Log.Error("Desirialization of call depth failed: %v", err)
 	} else {
 		p7.Log.Debug("Call depth :%v", depth.(uint64))
 	}
 
-	id, err := desirialize.Decode(buffer, &head, "")
+	id, err := deserialize.Decode(buffer, &head, "")
 	if err != nil {
 		p7.Log.Error("Desirialization of call id failed: %v", err)
 	} else {
@@ -168,7 +167,7 @@ func (Hooks *HookList) AddCall(p7 *ApplicationState, buffer []byte) {
 		p7.Log.Error("Construction of args Value List failed for this id %s, %v", id, err)
 	}
 
-	err = desirialize.DecodeValue(&args, buffer, &head)
+	err = deserialize.DecodeValue(&args, buffer, &head)
 	if err != nil {
 		p7.Log.Error("Desirialization of call args failed: %v", err)
 	}
@@ -180,27 +179,27 @@ func (Hooks *HookList) AddCall(p7 *ApplicationState, buffer []byte) {
 	Hooks.CallList = append(Hooks.CallList, call)
 }
 
-// Desirializes the buffer accoriding to the id and adds hook return
+// deserializes the buffer accoriding to the id and adds hook return
 // to the Return list in hooks
 func (Hooks *HookList) AddReturn(p7 *ApplicationState, buffer []byte) {
 	head := int(0)
 	var ret HookReturns
 
-	depth, err := desirialize.Decode(buffer, &head, uint64(0))
+	depth, err := deserialize.Decode(buffer, &head, uint64(0))
 	if err != nil {
 		p7.Log.Error("Desirialization of call depth failed: %v", err)
 	} else {
 		p7.Log.Debug("Call depth :%v", depth.(uint64))
 	}
 
-	timing, err := desirialize.Decode(buffer, &head, float64(0))
+	timing, err := deserialize.Decode(buffer, &head, float64(0))
 	if err != nil {
 		p7.Log.Error("Desirialization of return timing failed: %v", err)
 	} else {
 		p7.Log.Debug("Return time :%v", timing.(float64))
 	}
 
-	id, err := desirialize.Decode(buffer, &head, "")
+	id, err := deserialize.Decode(buffer, &head, "")
 	if err != nil {
 		p7.Log.Error("Desirialization of return id failed: %v", err)
 	} else {
@@ -212,7 +211,7 @@ func (Hooks *HookList) AddReturn(p7 *ApplicationState, buffer []byte) {
 		p7.Log.Error("Construction of return Value List failed for this id %s, %v", id, err)
 	}
 
-	err = desirialize.DecodeValue(&returns, buffer, &head)
+	err = deserialize.DecodeValue(&returns, buffer, &head)
 	if err != nil {
 		p7.Log.Error("Desirialization of returns failed: %v", err)
 	}
@@ -224,7 +223,7 @@ func (Hooks *HookList) AddReturn(p7 *ApplicationState, buffer []byte) {
 	Hooks.ReturnList = append(Hooks.ReturnList, ret)
 }
 
-// Desirializes the buffer and adds the hook into the hooks list
+// deserializes the buffer and adds the hook into the hooks list
 func (p7 *ApplicationState) AddHook(buffer []byte) {
 	p7.Log.Debug("Just Hook Buffer: \n%v", hex.Dump(buffer[1:]))
 	switch buffer[0] {
