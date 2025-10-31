@@ -1,4 +1,4 @@
-module ui
+module github.com/cloakwiss/project-seven/ui
 
 go 1.25.3
 

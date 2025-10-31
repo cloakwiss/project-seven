@@ -12,7 +12,7 @@ import (
 	// "time"
 	// "strings"
 
-	"ui/p7"
+	"github.com/cloakwiss/project-seven/ui/p7"
 
 	"github.com/sqweek/dialog"
 	webview "github.com/webview/webview_go"
