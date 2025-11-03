@@ -13,25 +13,60 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+func getReturnValues(id string) ([]deserialize.Values, error) {
+	switch id {
+	case "MessageBoxA":
+		{
+			args := make([]deserialize.Values, 1)
+
+			args[0].Name = "result"
+			args[0].Val = int32(0)
+
+			return args, nil
+		}
+
+	default:
+		{
+			return nil, errors.New("Unimplemented function id")
+		}
+	}
+}
+
 func getCallArgs(id string) ([]deserialize.Values, error) {
-	if id == "MessageBoxA" {
-		args := make([]deserialize.Values, 4)
+	switch id {
+	case "MessageBoxA":
+		{
+			args := make([]deserialize.Values, 4)
 
-		args[0].Name = "hWnd"
-		args[0].Val = uint64(0)
+			args[0].Name = "hWnd"
+			args[0].Val = uint64(0)
 
-		args[1].Name = "lpText"
-		args[1].Val = string("")
+			args[1].Name = "lpText"
+			args[1].Val = string("")
 
-		args[2].Name = "lpCaption"
-		args[2].Val = string("")
+			args[2].Name = "lpCaption"
+			args[2].Val = string("")
 
-		args[3].Name = "uType"
-		args[3].Val = uint32(0)
+			args[3].Name = "uType"
+			args[3].Val = uint32(0)
 
-		return args, nil
-	} else {
-		return nil, errors.New("Unimplemented function id")
+			return args, nil
+		}
+
+	case "Sleep":
+		{
+			args := make([]deserialize.Values, 1)
+
+			args[0].Name = "dwMilliseconds"
+			args[0].Val = uint32(0)
+
+			return args, nil
+		}
+
+	default:
+		{
+			return nil, errors.New("Unimplemented function id")
+		}
 	}
 }
 
@@ -44,9 +79,10 @@ func Test(t *testing.T) {
 
 	s := ntdb.NewNtdb(db, 1000)
 
-	ids := []string{"MessageBoxA"}
+	ids := []string{"Sleep"}
 
 	for _, id := range ids {
+		fmt.Printf("Testing %s\n", id)
 		fData := s.GetFunctionData(id)
 		trueArgs, err := fData.GetCallArgs()
 		if err != nil {
@@ -61,7 +97,7 @@ func Test(t *testing.T) {
 		if deserialize.DeepEqualValues(trueArgs, callArgs) {
 			fmt.Println("Passed")
 		} else {
-			fmt.Println("Passed")
+			fmt.Println("Failed")
 		}
 	}
 }

@@ -121,37 +121,59 @@ func query(dbConnection *sql.DB, function_name string) FunctionData {
 
 // Get Call Arguments fromt the function data
 func (funcData *FunctionData) GetCallArgs() ([]deserialize.Values, error) {
-	if funcData.Name == "MessageBoxA" {
-		args := make([]deserialize.Values, 4)
+	switch funcData.Name {
+	case "MessageBoxA":
+		{
+			args := make([]deserialize.Values, 4)
 
-		args[0].Name = "hWnd"
-		args[0].Val = uint64(0)
+			args[0].Name = "hWnd"
+			args[0].Val = uint64(0)
 
-		args[1].Name = "lpText"
-		args[1].Val = string("")
+			args[1].Name = "lpText"
+			args[1].Val = string("")
 
-		args[2].Name = "lpCaption"
-		args[2].Val = string("")
+			args[2].Name = "lpCaption"
+			args[2].Val = string("")
 
-		args[3].Name = "uType"
-		args[3].Val = uint32(0)
+			args[3].Name = "uType"
+			args[3].Val = uint32(0)
 
-		return args, nil
-	} else {
-		return nil, errors.New("Unimplemented function id")
+			return args, nil
+		}
+
+	case "Sleep":
+		{
+			args := make([]deserialize.Values, 1)
+
+			args[0].Name = "dwMilliseconds"
+			args[0].Val = uint32(0)
+
+			return args, nil
+		}
+
+	default:
+		{
+			return nil, errors.New("Unimplemented function id")
+		}
 	}
 }
 
 // Get Return Values from the function data
 func (funcData *FunctionData) GetReturnValues() ([]deserialize.Values, error) {
-	if funcData.Name == "MessageBoxA" {
-		args := make([]deserialize.Values, 1)
+	switch funcData.Name {
+	case "MessageBoxA":
+		{
+			args := make([]deserialize.Values, 1)
 
-		args[0].Name = "result"
-		args[0].Val = int32(0)
+			args[0].Name = "result"
+			args[0].Val = int32(0)
 
-		return args, nil
-	} else {
-		return nil, errors.New("Unimplemented function id")
+			return args, nil
+		}
+
+	default:
+		{
+			return nil, errors.New("Unimplemented function id")
+		}
 	}
 }

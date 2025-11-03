@@ -24,7 +24,7 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
     int result;
     TIME({ result = TrueMessageBoxA(hWnd, lpText, lpCaption, uType); });
 
-	result = 24;
+    result = 24;
     SEND_AFTER_CALL("MessageBoxA", { BOIL_INT32(result); })
 
     return 0;
@@ -32,7 +32,7 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 // --------------------------------------------------------------------------------------------- //
 
 
-#if 0
+/*
 // CreateProcessA
 static BOOL(WINAPI *TrueCreateProcessA)(
     LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes,
@@ -209,6 +209,7 @@ HookedVirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD
 
     return result;
 }
+*/
 
 
 
@@ -218,18 +219,16 @@ static VOID(WINAPI *TrueSleep)(DWORD dwMilliseconds) = Sleep;
 static VOID WINAPI
 HookedSleep(DWORD dwMilliseconds) {
 
-    SEND_BEFORE_CALL({
-        start_json_before("Sleep");
-        log_fields("dwMilliseconds", BOIL(dwMilliseconds), true);
-    })
+    SEND_BEFORE_CALL("Sleep", { BOIL_DWORD(dwMilliseconds); })
 
     TrueSleep(dwMilliseconds);
 
-    SEND_AFTER_CALL({ start_json_after("Sleep"); })
+    SEND_AFTER_CALL("Sleep", )
 }
 
 
 
+/*
 // SendMessage
 static LRESULT(WINAPI *TrueSendMessage)(HWND hWnd, UINT Msg, WPARAM wParam,
                                         LPARAM lParam) = SendMessage;
@@ -284,8 +283,7 @@ HookedWriteProcessMemory(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer
 
     return result;
 }
-#endif
-
+*/
 
 __declspec(dllexport) BOOL APIENTRY
 DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
