@@ -3,10 +3,12 @@ module github.com/cloakwiss/project-seven/ui
 go 1.25.3
 
 require (
-	github.com/cloakwiss/project-seven/deserialize v0.0.0
+	github.com/cloakwiss/project-seven/deserialize v0.0.0-00010101000000-000000000000
 	github.com/sqweek/dialog v0.0.0-20240226140203-065105509627
 	github.com/webview/webview_go v0.0.0-20240831120633-6173450d4dd6
 )
+
+require github.com/mattn/go-sqlite3 v1.14.32 // indirect
 
 replace github.com/cloakwiss/project-seven/deserialize => ../deserialize
 

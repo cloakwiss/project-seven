@@ -160,3 +160,83 @@ func DecodeValue(structure *[]Values, buffer []byte, head *int) error {
 	}
 	return nil
 }
+
+// DeepEqualValues recursively compares two slices of Values.
+// It does not use reflect — only type assertions and recursion.
+func DeepEqualValues(a, b []Values) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := range a {
+		if a[i].Name != b[i].Name {
+			return false
+		}
+
+		switch av := a[i].Val.(type) {
+		case []Values:
+			bv, ok := b[i].Val.([]Values)
+			if !ok {
+				return false
+			}
+			if !DeepEqualValues(av, bv) {
+				return false
+			}
+
+		case string:
+			bv, ok := b[i].Val.(string)
+			if !ok || av != bv {
+				return false
+			}
+
+		case int:
+			bv, ok := b[i].Val.(int)
+			if !ok || av != bv {
+				return false
+			}
+
+		case int32:
+			bv, ok := b[i].Val.(int32)
+			if !ok || av != bv {
+				return false
+			}
+
+		case int64:
+			bv, ok := b[i].Val.(int64)
+			if !ok || av != bv {
+				return false
+			}
+
+		case float32:
+			bv, ok := b[i].Val.(float32)
+			if !ok || av != bv {
+				return false
+			}
+
+		case float64:
+			bv, ok := b[i].Val.(float64)
+			if !ok || av != bv {
+				return false
+			}
+
+		case bool:
+			bv, ok := b[i].Val.(bool)
+			if !ok || av != bv {
+				return false
+			}
+
+		case nil:
+			if b[i].Val != nil {
+				return false
+			}
+
+		default:
+			// Unknown type – must match by type and pointer
+			if av != b[i].Val {
+				return false
+			}
+		}
+	}
+
+	return true
+}
