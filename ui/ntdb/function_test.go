@@ -77,7 +77,10 @@ func Test(t *testing.T) {
 	}
 	defer db.Close()
 
-	s := ntdb.NewNtdb(db, 1000)
+	s,err := ntdb.NewNtdb(db, 1000)
+	if err != nil {
+		log.Panicf("Error creating new ntdb instance: %v\n", err)
+	}
 
 	ids := []string{"Sleep"}
 

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log"
 
-	deserialize "github.com/cloakwiss/project-seven/deserialize"
+	decode "github.com/cloakwiss/project-seven/deserialize"
 )
 
 type FunctionData struct {
@@ -17,7 +17,8 @@ type FunctionData struct {
 type FunctionParameters []FunctionParameter
 
 type FunctionParameter struct {
-	Name, Datatype, Usage, Documentation string
+	Name, DataType, Usage, Documentation string
+	IsStructure, IsPointer bool
 }
 
 func (s *Ntdb) GetFunctionData(function_name string) FunctionData {
@@ -93,12 +94,13 @@ func query(dbConnection *sql.DB, function_name string) FunctionData {
 			if er := resultingParameters.Scan(
 				&num,
 				&functionPara.Name,
-				&functionPara.Datatype,
+				&functionPara.DataType,
 				&functionPara.Usage,
 				&functionPara.Documentation,
 			); er != nil {
 				log.Panicf("Some error %v while scanning %s's result \n", er, "FunctionParameter")
 			}
+
 
 			// This should not be possible
 			if num != i+1 {
@@ -120,11 +122,11 @@ func query(dbConnection *sql.DB, function_name string) FunctionData {
 // --------------------------------------------------------------------------------------------- //
 
 // Get Call Arguments fromt the function data
-func (funcData *FunctionData) GetCallArgs() ([]deserialize.Values, error) {
+func (funcData *FunctionData) GetCallArgs() ([]decode.Values, error) {
 	switch funcData.Name {
 	case "MessageBoxA":
 		{
-			args := make([]deserialize.Values, 4)
+			args := make([]decode.Values, 4)
 
 			args[0].Name = "hWnd"
 			args[0].Val = uint64(0)
@@ -141,29 +143,30 @@ func (funcData *FunctionData) GetCallArgs() ([]deserialize.Values, error) {
 			return args, nil
 		}
 
-	case "Sleep":
-		{
-			args := make([]deserialize.Values, 1)
-
-			args[0].Name = "dwMilliseconds"
-			args[0].Val = uint32(0)
-
-			return args, nil
-		}
-
 	default:
 		{
-			return nil, errors.New("Unimplemented function id")
+			var arg_error error
+			args := make([]decode.Values, funcData.Arity)
+			for i,param := range(funcData.FunctionParameters) {
+				args[i].Name = param.Name
+				val, err := decode.GetDefaultVal(param.DataType)
+				if err != nil {
+					arg_error = err
+				}
+				args[i].Val = val
+			}
+
+			return nil, arg_error
 		}
 	}
 }
 
 // Get Return Values from the function data
-func (funcData *FunctionData) GetReturnValues() ([]deserialize.Values, error) {
+func (funcData *FunctionData) GetReturnValues() ([]decode.Values, error) {
 	switch funcData.Name {
 	case "MessageBoxA":
 		{
-			args := make([]deserialize.Values, 1)
+			args := make([]decode.Values, 1)
 
 			args[0].Name = "result"
 			args[0].Val = int32(0)

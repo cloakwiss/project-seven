@@ -240,3 +240,60 @@ func DeepEqualValues(a, b []Values) bool {
 
 	return true
 }
+
+func GetDefaultVal(dataType string) (any, error) {
+	switch dataType {
+	case "int8":
+		{
+			return int8(0), nil
+		}
+	case "int16":
+		{
+			return int16(0), nil
+		}
+	case "int32":
+		{
+			return int32(0), nil
+		}
+	case "int64":
+		{
+			return int64(0), nil
+		}
+	case "uint8":
+		{
+			return uint8(0), nil
+		}
+	case "uint16":
+		{
+			return uint16(0), nil
+		}
+	case "uint32":
+		{
+			return uint32(0), nil
+		}
+	case "uint64":
+		{
+			return uint64(0), nil
+		}
+	case "float32":
+		{
+			return float32(0.0), nil
+		}
+	case "float64":
+		{
+			return float64(0.0), nil
+		}
+	case "cstring":
+		{
+			return string(""), nil
+		}
+	case "null":
+		{
+			return int8(0x78), nil
+		}
+	default:
+		{
+			return nil, fmt.Errorf("Non std dataType found %s", dataType)
+		}
+	}
+}
