@@ -130,23 +130,21 @@ HookedCreateRemoteThread(HANDLE hProcess, LPSECURITY_ATTRIBUTES lpThreadAttribut
 
 
 
-/*
+
 // LoadLibraryA
 static HMODULE(WINAPI *TrueLoadLibraryA)(LPCSTR lpLibFileName) = LoadLibraryA;
 
 static HMODULE WINAPI
 HookedLoadLibraryA(LPCSTR lpLibFileName) {
 
-    SEND_BEFORE_CALL({
-        start_json_before("LoadLibraryA called");
-        log_fields("pLibFileName: ", BOIL(lpLibFileName), true);
+    SEND_BEFORE_CALL("LoadLibraryA" ,{
+        BOIL_LPCSTR(lpLibFileName);
     })
 
     HMODULE result = TrueLoadLibraryA(lpLibFileName);
 
-    SEND_AFTER_CALL({
-        start_json_after("LoadLibraryA Returned");
-        log_fields("returned: ", BOIL(result), true);
+    SEND_AFTER_CALL("LoadLibraryA",{
+        BOIL_HANDLE(result);
     })
 
     return result;
@@ -161,26 +159,24 @@ static LPVOID(WINAPI *TrueVirtualAlloc)(LPVOID lpAddress, SIZE_T dwSize, DWORD f
 static LPVOID WINAPI
 HookedVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) {
 
-    SEND_BEFORE_CALL({
-        start_json_before("VirtualAlloc called");
-        log_fields("pAddress: ", BOIL(lpAddress));
-        log_fields("wSize: ", BOIL(dwSize));
-        log_fields("lAllocationType: ", BOIL(flAllocationType));
-        log_fields("lProtect: ", BOIL(flProtect), true);
+    SEND_BEFORE_CALL("VirtualAlloc",{
+        BOIL_LPVOID(lpAddress);
+        BOIL_SIZE_T(dwSize);
+        BOIL_DWORD(flAllocationType);
+        BOIL_DWORD(flProtect);
     })
 
     LPVOID result = TrueVirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
 
-    SEND_AFTER_CALL({
-        start_json_after("irtualAlloc Returned");
-        log_fields("returned: ", BOIL(result), true);
+    SEND_AFTER_CALL("VirtualAlloc",{
+        BOIL_LPVOID(result);
     })
 
     return result;
 }
 
 
-
+/*
 // VirtualProtect
 static BOOL(WINAPI *TrueVirtualProtect)(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect,
                                         PDWORD lpflOldProtect) = VirtualProtect;
@@ -227,7 +223,7 @@ HookedSleep(DWORD dwMilliseconds) {
 
 
 
-/*
+
 // SendMessage
 static LRESULT(WINAPI *TrueSendMessage)(HWND hWnd, UINT Msg, WPARAM wParam,
                                         LPARAM lParam) = SendMessage;
@@ -235,19 +231,17 @@ static LRESULT(WINAPI *TrueSendMessage)(HWND hWnd, UINT Msg, WPARAM wParam,
 static LRESULT WINAPI
 HookedSendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
 
-    SEND_BEFORE_CALL({
-        start_json_before("SendMessage");
-        log_fields("Wnd: ", BOIL(hWnd));
-        log_fields("sg: ", BOIL(Msg));
-        log_fields("Param: ", BOIL(wParam));
-        log_fields("Param: ", BOIL(lParam), true);
+    SEND_BEFORE_CALL("SendMessage",{
+        BOIL_HWND(hWnd);
+        BOIL_UINT(Msg);
+        BOIL_WPARAM(wParam);
+        BOIL_LPARAM(lParam);
     })
 
     LRESULT result = TrueSendMessage(hWnd, Msg, wParam, lParam);
 
-    SEND_AFTER_CALL({
-        start_json_after("sendMessage returned");
-        log_fields("return: ", BOIL(result), true);
+    SEND_AFTER_CALL("sendMessage",{
+        BOIL_LRESULT(result);
     })
 
     return result;
@@ -263,26 +257,24 @@ lpBuffer,
 static BOOL WINAPI
 HookedWriteProcessMemory(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer, SIZE_T nSize,
                          SIZE_T *lpNumberOfBytesWritten) {
-    SEND_BEFORE_CALL({
-        start_json_before("WriteProcessMemory");
-        log_fields("Process: ", BOIL(hProcess));
-        log_fields("pBaseAddress: ", BOIL(lpBaseAddress));
-        log_fields("pBuffer: ", BOIL(lpBuffer));
-        log_fields("Size: ", BOIL(nSize), true);
+    SEND_BEFORE_CALL("WriteProcessMemory",{
+        BOIL_HANDLE(hProcess);
+        BOIL_LPVOID(lpBaseAddress);
+        BOIL_LPCVOID(lpBuffer);
+        BOIL_SIZE_T(nSize);
     })
 
     BOOL result =
         TrueWriteProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, lpNumberOfBytesWritten);
 
-    SEND_AFTER_CALL({
-        start_json_after("WriteProcessMemory");
-        log_fields("pNumberOfBytesWritten: ", BOIL(lpNumberOfBytesWritten));
-        log_fields("esult: ", BOIL(result));
+    SEND_AFTER_CALL("WriteProcessMemory",{
+        BOIL_PSIZE_T(lpNumberOfBytesWritten);
+        BOIL_BOOL(result);
     })
 
     return result;
 }
-*/
+
 
 __declspec(dllexport) BOOL APIENTRY
 DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
@@ -301,17 +293,17 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
         DetourAttach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
 
-        // DetourAttach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
+        DetourAttach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
 
-        // DetourAttach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
+        DetourAttach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
 
         // DetourAttach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
 
         DetourAttach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
 
-        // DetourAttach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
+        DetourAttach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
 
-        // DetourAttach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);
+        DetourAttach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);
 
         DetourTransactionCommit();
         OutputDebugStringA("commited hook");
@@ -429,17 +421,17 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
         DetourDetach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
 
-        // DetourDetach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
+        DetourDetach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
 
-        // DetourDetach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
+        DetourDetach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
 
         // DetourDetach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
 
         DetourDetach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
 
-        // DetourDetach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
+        DetourDetach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
 
-        // DetourDetach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);
+        DetourDetach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);
 
         DetourTransactionCommit();
 
