@@ -77,6 +77,14 @@ InitHookRet(char *id) {
     StrCpy(id);
 }
 
+
+inline void
+BOIL_null() {
+	uint8_t b = 0x23;
+    Serialize(&b, &HookBufferHead, HookBuffer, sizeof(uint8_t));
+}
+
+
 inline void
 BOIL_int8(int8_t val) {
     Serialize(&val, &HookBufferHead, HookBuffer, sizeof(int8_t));

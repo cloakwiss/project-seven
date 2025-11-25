@@ -3,29 +3,26 @@
 
 int
 main() {
-    STARTUPINFOA si;
-    PROCESS_INFORMATION pi;
+    STARTUPINFOA        si = {};
+    PROCESS_INFORMATION pi = {};
 
     std::cout << "Inside Create Process Executable.\n";
 
-    ZeroMemory(&si, sizeof(si));
-    si.cb = sizeof(si);
-    ZeroMemory(&pi, sizeof(pi));
 
     // Command to be executed (Notepad in this example)
     const char *app_path = "C:\\windows\\notepad.exe";
 
     // Create the process
-    if (!CreateProcessA((LPSTR)app_path, // Application name
-                        NULL,            // Command Line args
-                        NULL,            // Process handle not inheritable
-                        NULL,            // Thread handle not inheritable
-                        FALSE,           // Set handle inheritance to FALSE
-                        0,               // No creation flags
-                        NULL,            // Use parent's environment block
-                        NULL,            // Use parent's starting directory
-                        &si,             // Pointer to STARTUPINFOA structure
-                        &pi))            // Pointer to PROCESS_INFORMATION structure
+    if (!CreateProcessA(app_path, // Application name
+                        NULL,     // Command Line args
+                        NULL,     // Process handle not inheritable
+                        NULL,     // Thread handle not inheritable
+                        FALSE,    // Set handle inheritance to FALSE
+                        0,        // No creation flags
+                        NULL,     // Use parent's environment block
+                        NULL,     // Use parent's starting directory
+                        &si,      // Pointer to STARTUPINFOA structure
+                        &pi))     // Pointer to PROCESS_INFORMATION structure
     {
         std::cerr << "CreateProcessA failed (" << GetLastError() << ").\n";
         return 1;

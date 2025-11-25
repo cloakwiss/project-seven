@@ -32,40 +32,48 @@ HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 // --------------------------------------------------------------------------------------------- //
 
 
-/*
 // CreateProcessA
-static BOOL(WINAPI *TrueCreateProcessA)(
-    LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes,
-    LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
-    LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo,
-    LPPROCESS_INFORMATION lpProcessInformation) = CreateProcessA;
+static BOOL(WINAPI *TrueCreateProcessA)(LPCSTR                lpApplicationName,
+                                        LPSTR                 lpCommandLine,
+                                        LPSECURITY_ATTRIBUTES lpProcessAttributes,
+                                        LPSECURITY_ATTRIBUTES lpThreadAttributes,
+                                        BOOL                  bInheritHandles,
+                                        DWORD                 dwCreationFlags,
+                                        LPVOID                lpEnvironment,
+                                        LPCSTR                lpCurrentDirectory,
+                                        LPSTARTUPINFOA        lpStartupInfo,
+                                        LPPROCESS_INFORMATION lpProcessInformation) =
+    CreateProcessA;
 static BOOL WINAPI
-HookedCreateProcessA(LPCSTR lpApplicationName, LPSTR lpCommandLine,
+HookedCreateProcessA(LPCSTR                lpApplicationName,
+                     LPSTR                 lpCommandLine,
                      LPSECURITY_ATTRIBUTES lpProcessAttributes,
-                     LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles,
-                     DWORD dwCreationFlags, LPVOID lpEnvironment, LPCSTR lpCurrentDirectory,
-                     LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation) {
+                     LPSECURITY_ATTRIBUTES lpThreadAttributes,
+                     BOOL                  bInheritHandles,
+                     DWORD                 dwCreationFlags,
+                     LPVOID                lpEnvironment,
+                     LPCSTR                lpCurrentDirectory,
+                     LPSTARTUPINFOA        lpStartupInfo,
+                     LPPROCESS_INFORMATION lpProcessInformation) {
 
-    SEND_BEFORE_CALL({
-        start_json_before("CreateProcessA called");
-        log_fields(" lpApplicationName: ", BOIL(lpApplicationName));
-        log_fields(" lpCommandLine: ", BOIL(lpCommandLine));
-        log_fields(" bInheritHandles: ", BOIL(bInheritHandles));
-        log_fields(" dwCreationFlags: ", BOIL(dwCreationFlags));
-        log_fields(" lpCurrentDirectory: ", BOIL(lpCurrentDirectory), true);
+    SEND_BEFORE_CALL("CreateProcessA", {
+        BOIL_LPCSTR(lpApplicationName);
+        BOIL_BOOL(bInheritHandles);
+        BOIL_DWORD(dwCreationFlags);
     })
 
-    BOOL result = TrueCreateProcessA(
-        lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
-        bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo,
-        lpProcessInformation);
+    BOOL result = TrueCreateProcessA(lpApplicationName,
+                                     lpCommandLine,
+                                     lpProcessAttributes,
+                                     lpThreadAttributes,
+                                     bInheritHandles,
+                                     dwCreationFlags,
+                                     lpEnvironment,
+                                     lpCurrentDirectory,
+                                     lpStartupInfo,
+                                     lpProcessInformation);
 
-    SEND_AFTER_CALL({
-        start_json_before(" CreateProcessA returned ");
-        log_fields(" lpCommandLine: ", BOIL(lpCommandLine));
-        log_fields(" PID: ", BOIL(lpProcessInformation));
-        log_fields(" returned: ", BOIL(result), true);
-    })
+    SEND_AFTER_CALL("CreateProcessA", { BOIL_BOOL(result); })
 
     return result;
 }
@@ -77,19 +85,15 @@ static HWND(WINAPI *TrueGetWindow)(HWND, UINT) = GetWindow;
 static HWND
 HookedGetWindow(HWND hWnd, UINT uCmd) {
 
-    SEND_BEFORE_CALL({
-        start_json_before("GetWindow");
-        log_fields("hWnd", BOIL(hWnd));
-        log_fields("uCmd", BOIL(uCmd), true);
+    SEND_BEFORE_CALL("GetWindow", {
+        BOIL_HWND(hWnd);
+        BOIL_UINT(uCmd);
     })
 
     HWND result;
     TIME({ result = TrueGetWindow(hWnd, uCmd); })
 
-    SEND_AFTER_CALL({
-        start_json_after("GetWindow");
-        log_fields("result ", BOIL(result), true);
-    })
+    SEND_AFTER_CALL("GetWindow", { BOIL_HWND(result); })
 
     return result;
 }
@@ -107,24 +111,18 @@ HookedCreateRemoteThread(HANDLE hProcess, LPSECURITY_ATTRIBUTES lpThreadAttribut
                          LPDWORD lpThreadId // out
 ) {
 
-    SEND_BEFORE_CALL({
-        start_json_before("CreateRemoteThread called");
-        log_fields("hProcess: ", BOIL(hProcess));
-        log_fields("lpThreadAttributes: ", BOIL(lpThreadAttributes));
-        log_fields("dwStackSize: ", BOIL(dwStackSize));
-        log_fields("lpStartAddress: ", BOIL(lpStartAddress));
-        log_fields("lpParameter: ", BOIL(lpParameter));
-        log_fields("dwCreationFlags: ", BOIL(dwCreationFlags), true);
+    SEND_BEFORE_CALL("CreateRemoteThread", {
+        BOIL_HANDLE(hProcess);
+        BOIL_SIZE_T(dwStackSize);
+        BOIL_DWORD(dwCreationFlags);
     })
 
     HANDLE result =
         TrueCreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress,
                                lpParameter, dwCreationFlags, lpThreadId);
 
-    SEND_AFTER_CALL({
-        start_json_after("CreateRemoteThread");
-        log_fields("lpThreadId: ", BOIL(lpThreadId));
-        log_fields("returned: ", BOIL(result), true);
+    SEND_AFTER_CALL("CreateRemoteThread",{
+        BOIL_HANDLE(result);
     })
 
     return result;
@@ -132,6 +130,7 @@ HookedCreateRemoteThread(HANDLE hProcess, LPSECURITY_ATTRIBUTES lpThreadAttribut
 
 
 
+/*
 // LoadLibraryA
 static HMODULE(WINAPI *TrueLoadLibraryA)(LPCSTR lpLibFileName) = LoadLibraryA;
 
@@ -296,11 +295,11 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
         DetourAttach(&(PVOID &)TrueMessageBoxA, &(PVOID &)HookedMessageBoxA);
 
-        // DetourAttach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
+        DetourAttach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
 
-        // DetourAttach(&(PVOID &)TrueGetWindow, &(PVOID &)HookedGetWindow);
+        DetourAttach(&(PVOID &)TrueGetWindow, &(PVOID &)HookedGetWindow);
 
-        // DetourAttach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
+        DetourAttach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
 
         // DetourAttach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
 
@@ -308,7 +307,7 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
 
         // DetourAttach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
 
-        // DetourAttach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
+        DetourAttach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
 
         // DetourAttach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
 
@@ -425,14 +424,21 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         DetourUpdateThread(GetCurrentThread());
 
         DetourDetach(&(PVOID &)TrueMessageBoxA, &(PVOID &)HookedMessageBoxA);
-        // DetourDetach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
-        // DetourDetach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
-        // DetourDetach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
+        DetourDetach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
+        DetourDetach(&(PVOID &)TrueGetWindow, &(PVOID &)HookedGetWindow);
+
+        DetourDetach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
+
         // DetourDetach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
+
         // DetourDetach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
+
         // DetourDetach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
-        // DetourDetach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
+
+        DetourDetach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
+
         // DetourDetach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
+
         // DetourDetach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);
 
         DetourTransactionCommit();
