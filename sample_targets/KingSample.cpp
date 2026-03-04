@@ -9,24 +9,27 @@ ThreadFunc(LPVOID lpParam) {
 
 void
 SafeCreateProcess(const char *cmdLine) {
-    STARTUPINFOA si = {sizeof(si)};
+    STARTUPINFOA si = {0};
     PROCESS_INFORMATION pi = {0};
 
-    // Create the process and check if it succeeded
-    if (!CreateProcessA(NULL,           // Application name (NULL means use cmdLine)
-                        (LPSTR)cmdLine, // Command line
-                        NULL,           // Process handle not inheritable
-                        NULL,           // Thread handle not inheritable
-                        FALSE,          // Inherit handles: false
-                        0,              // Creation flags
-                        NULL,           // Use parent's environment block
-                        NULL,           // Use parent's starting directory
-                        &si,            // STARTUPINFO structure
-                        &pi))           // PROCESS_INFORMATION structure
+    // Command to be executed (Notepad in this example)
+    const char *app_path = "C:\\windows\\notepad.exe";
+    // Create the process
+    if (!CreateProcessA(app_path, // Application name
+                        NULL,     // Command Line args
+                        NULL,     // Process handle not inheritable
+                        NULL,     // Thread handle not inheritable
+                        FALSE,    // Set handle inheritance to FALSE
+                        0,        // No creation flags
+                        NULL,     // Use parent's environment block
+                        NULL,     // Use parent's starting directory
+                        &si,      // Pointer to STARTUPINFOA structure
+                        &pi))     // Pointer to PROCESS_INFORMATION structure
     {
-        std::cerr << "CreateProcess failed. Error: " << GetLastError() << std::endl;
-        return;
+        std::cerr << "CreateProcessA failed (" << GetLastError() << ").\n";
     }
+
+    std::cout << "Notepad launched successfully.\n";
 
     std::cout << "Process created successfully with PID: " << pi.dwProcessId << std::endl;
 

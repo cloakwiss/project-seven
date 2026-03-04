@@ -20,7 +20,7 @@ if (-not $Targets)
 { $Targets = @("core") 
 }
 
-$CFlags = @("-D_AMD64_", "-EHsc")
+$CFlags = @("-nologo", "-D_AMD64_", "-EHsc")
 
 Invoke-Expression '.\scripts\clear.ps1 -c $Config -t $Targets'
 

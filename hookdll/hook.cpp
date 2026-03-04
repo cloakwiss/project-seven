@@ -8,27 +8,37 @@
 #include "./serialization.cpp"
 #include "./hook_utils.cpp"
 
+typedef struct {
+    PVOID *og;
+    PVOID  hooked;
+} Hook;
 
 // MessageBoxA --------------------------------------------------------------------------------- //
-static int(WINAPI *TrueMessageBoxA)(HWND, LPCSTR, LPCSTR, UINT) = MessageBoxA;
-static int WINAPI
-HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 
-    SEND_BEFORE_CALL("MessageBoxA", {
-        BOIL_HWND(hWnd);
-        BOIL_LPCSTR(lpText);
-        BOIL_LPCSTR(lpCaption);
-        BOIL_UINT(uType);
-    })
+static int (WINAPI *og_MessageBoxA)(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) = MessageBoxA;
+static int WINAPI hooked_MessageBoxA (HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
+
+	if(IsDebuggerPresent()) {
+		__debugbreak();
+	}
+    std::cout << "Inside the message box hook";
 
     int result;
-    TIME({ result = TrueMessageBoxA(hWnd, lpText, lpCaption, uType); });
+    TIME({ result = og_MessageBoxA(hWnd, lpText, lpCaption, uType); });
 
+
+	if(IsDebuggerPresent()) {
+		__debugbreak();
+	}
     result = 24;
-    SEND_AFTER_CALL("MessageBoxA", { BOIL_INT32(result); })
 
     return 0;
 }
+
+static Hook GLBL_hooks[] = {
+    {&(void *&)og_MessageBoxA, (void *)hooked_MessageBoxA},
+};
+
 // --------------------------------------------------------------------------------------------- //
 
 
@@ -101,14 +111,21 @@ HookedGetWindow(HWND hWnd, UINT uCmd) {
 
 
 // CreateRemoteThread
-static HANDLE(WINAPI *TrueCreateRemoteThread)(HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T,
-                                              LPTHREAD_START_ROUTINE, LPVOID, DWORD,
+static HANDLE(WINAPI *TrueCreateRemoteThread)(HANDLE,
+                                              LPSECURITY_ATTRIBUTES,
+                                              SIZE_T,
+                                              LPTHREAD_START_ROUTINE,
+                                              LPVOID,
+                                              DWORD,
                                               LPDWORD) = CreateRemoteThread;
 static HANDLE
-HookedCreateRemoteThread(HANDLE hProcess, LPSECURITY_ATTRIBUTES lpThreadAttributes,
-                         SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress,
-                         LPVOID lpParameter, DWORD dwCreationFlags,
-                         LPDWORD lpThreadId // out
+HookedCreateRemoteThread(HANDLE                 hProcess,
+                         LPSECURITY_ATTRIBUTES  lpThreadAttributes,
+                         SIZE_T                 dwStackSize,
+                         LPTHREAD_START_ROUTINE lpStartAddress,
+                         LPVOID                 lpParameter,
+                         DWORD                  dwCreationFlags,
+                         LPDWORD                lpThreadId // out
 ) {
 
     SEND_BEFORE_CALL("CreateRemoteThread", {
@@ -117,17 +134,18 @@ HookedCreateRemoteThread(HANDLE hProcess, LPSECURITY_ATTRIBUTES lpThreadAttribut
         BOIL_DWORD(dwCreationFlags);
     })
 
-    HANDLE result =
-        TrueCreateRemoteThread(hProcess, lpThreadAttributes, dwStackSize, lpStartAddress,
-                               lpParameter, dwCreationFlags, lpThreadId);
+    HANDLE result = TrueCreateRemoteThread(hProcess,
+                                           lpThreadAttributes,
+                                           dwStackSize,
+                                           lpStartAddress,
+                                           lpParameter,
+                                           dwCreationFlags,
+                                           lpThreadId);
 
-    SEND_AFTER_CALL("CreateRemoteThread",{
-        BOIL_HANDLE(result);
-    })
+    SEND_AFTER_CALL("CreateRemoteThread", { BOIL_HANDLE(result); })
 
     return result;
 }
-
 
 
 
@@ -137,15 +155,11 @@ static HMODULE(WINAPI *TrueLoadLibraryA)(LPCSTR lpLibFileName) = LoadLibraryA;
 static HMODULE WINAPI
 HookedLoadLibraryA(LPCSTR lpLibFileName) {
 
-    SEND_BEFORE_CALL("LoadLibraryA" ,{
-        BOIL_LPCSTR(lpLibFileName);
-    })
+    SEND_BEFORE_CALL("LoadLibraryA", { BOIL_LPCSTR(lpLibFileName); })
 
     HMODULE result = TrueLoadLibraryA(lpLibFileName);
 
-    SEND_AFTER_CALL("LoadLibraryA",{
-        BOIL_HANDLE(result);
-    })
+    SEND_AFTER_CALL("LoadLibraryA", { BOIL_HANDLE(result); })
 
     return result;
 }
@@ -153,13 +167,15 @@ HookedLoadLibraryA(LPCSTR lpLibFileName) {
 
 
 // VirtualAlloc
-static LPVOID(WINAPI *TrueVirtualAlloc)(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType,
-                                        DWORD flProtect) = VirtualAlloc;
+static LPVOID(WINAPI *TrueVirtualAlloc)(LPVOID lpAddress,
+                                        SIZE_T dwSize,
+                                        DWORD  flAllocationType,
+                                        DWORD  flProtect) = VirtualAlloc;
 
 static LPVOID WINAPI
 HookedVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) {
 
-    SEND_BEFORE_CALL("VirtualAlloc",{
+    SEND_BEFORE_CALL("VirtualAlloc", {
         BOIL_LPVOID(lpAddress);
         BOIL_SIZE_T(dwSize);
         BOIL_DWORD(flAllocationType);
@@ -168,9 +184,7 @@ HookedVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWOR
 
     LPVOID result = TrueVirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
 
-    SEND_AFTER_CALL("VirtualAlloc",{
-        BOIL_LPVOID(result);
-    })
+    SEND_AFTER_CALL("VirtualAlloc", { BOIL_LPVOID(result); })
 
     return result;
 }
@@ -223,15 +237,16 @@ HookedSleep(DWORD dwMilliseconds) {
 
 
 
-
 // SendMessage
-static LRESULT(WINAPI *TrueSendMessage)(HWND hWnd, UINT Msg, WPARAM wParam,
+static LRESULT(WINAPI *TrueSendMessage)(HWND   hWnd,
+                                        UINT   Msg,
+                                        WPARAM wParam,
                                         LPARAM lParam) = SendMessage;
 
 static LRESULT WINAPI
 HookedSendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
 
-    SEND_BEFORE_CALL("SendMessage",{
+    SEND_BEFORE_CALL("SendMessage", {
         BOIL_HWND(hWnd);
         BOIL_UINT(Msg);
         BOIL_WPARAM(wParam);
@@ -240,9 +255,7 @@ HookedSendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
 
     LRESULT result = TrueSendMessage(hWnd, Msg, wParam, lParam);
 
-    SEND_AFTER_CALL("sendMessage",{
-        BOIL_LRESULT(result);
-    })
+    SEND_AFTER_CALL("sendMessage", { BOIL_LRESULT(result); })
 
     return result;
 }
@@ -250,14 +263,18 @@ HookedSendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
 
 
 // WriteProcessMemory
-static BOOL(WINAPI *TrueWriteProcessMemory)(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID
-lpBuffer,
-                                            SIZE_T nSize,
+static BOOL(WINAPI *TrueWriteProcessMemory)(HANDLE  hProcess,
+                                            LPVOID  lpBaseAddress,
+                                            LPCVOID lpBuffer,
+                                            SIZE_T  nSize,
                                             SIZE_T *lpNumberOfBytesWritten) = WriteProcessMemory;
 static BOOL WINAPI
-HookedWriteProcessMemory(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer, SIZE_T nSize,
+HookedWriteProcessMemory(HANDLE  hProcess,
+                         LPVOID  lpBaseAddress,
+                         LPCVOID lpBuffer,
+                         SIZE_T  nSize,
                          SIZE_T *lpNumberOfBytesWritten) {
-    SEND_BEFORE_CALL("WriteProcessMemory",{
+    SEND_BEFORE_CALL("WriteProcessMemory", {
         BOIL_HANDLE(hProcess);
         BOIL_LPVOID(lpBaseAddress);
         BOIL_LPCVOID(lpBuffer);
@@ -267,7 +284,7 @@ HookedWriteProcessMemory(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer
     BOOL result =
         TrueWriteProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, lpNumberOfBytesWritten);
 
-    SEND_AFTER_CALL("WriteProcessMemory",{
+    SEND_AFTER_CALL("WriteProcessMemory", {
         BOIL_PSIZE_T(lpNumberOfBytesWritten);
         BOIL_BOOL(result);
     })
@@ -285,161 +302,161 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
 
-        DetourAttach(&(PVOID &)TrueMessageBoxA, &(PVOID &)HookedMessageBoxA);
+        DetourAttach(GLBL_hooks[0].og, GLBL_hooks[0].hooked);
 
-        DetourAttach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
+        // DetourAttach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
+        //
+        // DetourAttach(&(PVOID &)TrueGetWindow, &(PVOID &)HookedGetWindow);
+        //
+        // DetourAttach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
 
-        DetourAttach(&(PVOID &)TrueGetWindow, &(PVOID &)HookedGetWindow);
+        // DetourAttach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
 
-        DetourAttach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
-
-        DetourAttach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
-
-        DetourAttach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
+        // DetourAttach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
 
         // DetourAttach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
 
-        DetourAttach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
+        // DetourAttach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
 
-        DetourAttach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
+        // DetourAttach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
 
-        DetourAttach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);
+        // DetourAttach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);
 
         DetourTransactionCommit();
         OutputDebugStringA("commited hook");
 
 
-        // Time Init ----------------------------------------------------------- //
-        LARGE_INTEGER FreqStructResult = {};
-        QueryPerformanceFrequency(&FreqStructResult);
-        PerfCounterFrequency = FreqStructResult.QuadPart;
-
-
-        // Rolling the ControlPipe Thread ----------------------------------------- //
-
-        ThreadStopEvent = CreateEventA(0, TRUE, FALSE, 0);
-        ControlPipeHandle =
-            CreateNamedPipeA(ControlPipeName,                                       // Pipe Name
-                             PIPE_ACCESS_DUPLEX,                                    // Access Type
-                             PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, // Config
-                             1,                                                     // InstanceCount
-                             1,                                                     // OutBuffSize,
-                             1,                                                     // InBuffSize
-                             0,
-                             NULL);
-
-        if (ControlPipeHandle == INVALID_HANDLE_VALUE) {
-            std::cerr << "Couldn't create control pipe\n";
-        }
-
-        if (ControlPipeHandle != INVALID_HANDLE_VALUE && ThreadStopEvent) {
-
-            ThreadHandle = CreateThread(0, 0, ControlListener, 0, 0, 0);
-
-            if (ThreadHandle == INVALID_HANDLE_VALUE) {
-                std::cerr << "Couldn't create control thread \n";
-            }
-        }
-
-        // Getting the Sender Running --------------------------------------------- //
-
-        // Why Log when process is yet to attach
-        IsHookingOn = true;
-
-        HookBuffer =
-            (uint8_t *)VirtualAlloc(NULL, BUFFER_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-        if (HookBuffer == NULL) {
-            std::cerr << "VirtualAlloc failed with error: " << GetLastError() << '\n';
-            exit(3);
-        }
-        std::cerr << "Allocated Hook Buffer\n";
-
-        LOG("STARTED");
+        // // Time Init ----------------------------------------------------------- //
+        // LARGE_INTEGER FreqStructResult = {};
+        // QueryPerformanceFrequency(&FreqStructResult);
+        // PerfCounterFrequency = FreqStructResult.QuadPart;
+        //
+        //
+        // // Rolling the ControlPipe Thread ----------------------------------------- //
+        //
+        // ThreadStopEvent = CreateEventA(0, TRUE, FALSE, 0);
+        // ControlPipeHandle =
+        //     CreateNamedPipeA(ControlPipeName,                                       // Pipe Name
+        //                      PIPE_ACCESS_DUPLEX,                                    // Access
+        //                      Type PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, //
+        //                      Config 1,                                                     //
+        //                      InstanceCount 1, // OutBuffSize, 1, // InBuffSize 0, NULL);
+        //
+        // if (ControlPipeHandle == INVALID_HANDLE_VALUE) {
+        //     std::cerr << "Couldn't create control pipe\n";
+        // }
+        //
+        // if (ControlPipeHandle != INVALID_HANDLE_VALUE && ThreadStopEvent) {
+        //
+        //     ThreadHandle = CreateThread(0, 0, ControlListener, 0, 0, 0);
+        //
+        //     if (ThreadHandle == INVALID_HANDLE_VALUE) {
+        //         std::cerr << "Couldn't create control thread \n";
+        //     }
+        // }
+        //
+        // // Getting the Sender Running --------------------------------------------- //
+        //
+        // // Why Log when process is yet to attach
+        // IsHookingOn = true;
+        //
+        // HookBuffer =
+        //     (uint8_t *)VirtualAlloc(NULL, BUFFER_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        // if (HookBuffer == NULL) {
+        //     std::cerr << "VirtualAlloc failed with error: " << GetLastError() << '\n';
+        //     exit(3);
+        // }
+        // std::cerr << "Allocated Hook Buffer\n";
+        //
+        // LOG("STARTED");
 
     } else if (reason == DLL_PROCESS_DETACH) {
 
-        IsHookingOn = false;
-        VirtualFree(HookBuffer, 0, MEM_RELEASE);
-
-        // Unrolling Control Pipe Thread ------------------------------------------------ //
-        if (ThreadStopEvent) {
-            BOOL success = SetEvent(ThreadStopEvent);
-            if (success) {
-                LOG("ThreadStopEvent Set");
-            } else {
-                LOG("ThreadStopEvent Set Failed");
-            }
-        }
-
-        if (ThreadHandle) {
-            DWORD wait = WaitForSingleObject(ThreadHandle, 150);
-            switch (wait) {
-                case (WAIT_OBJECT_0): {
-                    LOG("Normal Stopping, from DllMain\n");
-                } break;
-
-                case (WAIT_ABANDONED):
-                case (WAIT_FAILED): {
-                    LOG("Dangerous stopping, from DllMain\n");
-                    LOG("The Wait Failed for some reason stopping the thread. dll main\n");
-                    LOG("HERE IS THE WAIT FAILED ERROR: " << GetLastError());
-                } break;
-
-                case (WAIT_TIMEOUT):
-                default: {
-                } break;
-            }
-            CloseHandle(ThreadHandle);
-            ThreadHandle = 0;
-        }
-
-        if (ControlPipeHandle != INVALID_HANDLE_VALUE) {
-            CloseHandle(ControlPipeHandle);
-            ControlPipeHandle = INVALID_HANDLE_VALUE;
-        }
-
-        if (ThreadStopEvent) {
-            CloseHandle(ThreadStopEvent);
-            ThreadStopEvent = 0;
-        }
-
-
-        // Unrolling Hook Pipe Handles -------------------------------------------------- //
-
-        if (HookPipeHandle != INVALID_HANDLE_VALUE) {
-            CloseHandle(HookPipeHandle);
-            HookPipeHandle = INVALID_HANDLE_VALUE;
-        }
+        // IsHookingOn = false;
+        // VirtualFree(HookBuffer, 0, MEM_RELEASE);
+        //
+        // // Unrolling Control Pipe Thread ------------------------------------------------ //
+        // if (ThreadStopEvent) {
+        //     BOOL success = SetEvent(ThreadStopEvent);
+        //     if (success) {
+        //         LOG("ThreadStopEvent Set");
+        //     } else {
+        //         LOG("ThreadStopEvent Set Failed");
+        //     }
+        // }
+        //
+        // if (ThreadHandle) {
+        //     DWORD wait = WaitForSingleObject(ThreadHandle, 150);
+        //     switch (wait) {
+        //         case (WAIT_OBJECT_0): {
+        //             LOG("Normal Stopping, from DllMain\n");
+        //         } break;
+        //
+        //         case (WAIT_ABANDONED):
+        //         case (WAIT_FAILED): {
+        //             LOG("Dangerous stopping, from DllMain\n");
+        //             LOG("The Wait Failed for some reason stopping the thread. dll main\n");
+        //             LOG("HERE IS THE WAIT FAILED ERROR: " << GetLastError());
+        //         } break;
+        //
+        //         case (WAIT_TIMEOUT):
+        //         default: {
+        //         } break;
+        //     }
+        //     CloseHandle(ThreadHandle);
+        //     ThreadHandle = 0;
+        // }
+        //
+        // if (ControlPipeHandle != INVALID_HANDLE_VALUE) {
+        //     CloseHandle(ControlPipeHandle);
+        //     ControlPipeHandle = INVALID_HANDLE_VALUE;
+        // }
+        //
+        // if (ThreadStopEvent) {
+        //     CloseHandle(ThreadStopEvent);
+        //     ThreadStopEvent = 0;
+        // }
+        //
+        //
+        // // Unrolling Hook Pipe Handles -------------------------------------------------- //
+        //
+        // if (HookPipeHandle != INVALID_HANDLE_VALUE) {
+        //     CloseHandle(HookPipeHandle);
+        //     HookPipeHandle = INVALID_HANDLE_VALUE;
+        // }
 
         // Unrolling Hooks -------------------------------------------------------------- //
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
 
-        DetourDetach(&(PVOID &)TrueMessageBoxA, &(PVOID &)HookedMessageBoxA);
-        DetourDetach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
-        DetourDetach(&(PVOID &)TrueGetWindow, &(PVOID &)HookedGetWindow);
 
-        DetourDetach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
+        DetourDetach(GLBL_hooks[0].og, GLBL_hooks[0].hooked);
 
-        DetourDetach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
+        // DetourDetach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
+        //
+        // DetourDetach(&(PVOID &)TrueGetWindow, &(PVOID &)HookedGetWindow);
+        //
+        // DetourDetach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
 
-        DetourDetach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
+        // DetourDetach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
+
+        // DetourDetach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
 
         // DetourDetach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
 
-        DetourDetach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
+        // DetourDetach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
 
-        DetourDetach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
+        // DetourDetach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
 
-        DetourDetach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);
+        // DetourDetach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);
 
         DetourTransactionCommit();
 
-        LOG("ENDED");
-        if (LogPipeHandle != INVALID_HANDLE_VALUE) {
-            CloseHandle(LogPipeHandle);
-            LogPipeHandle = INVALID_HANDLE_VALUE;
-        }
+        // LOG("ENDED");
+        // if (LogPipeHandle != INVALID_HANDLE_VALUE) {
+        //     CloseHandle(LogPipeHandle);
+        //     LogPipeHandle = INVALID_HANDLE_VALUE;
+        // }
     }
 
     return TRUE;
