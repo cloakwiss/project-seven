@@ -2,295 +2,39 @@
 
 // #include <cstdint>
 #include <windows.h>
-#include <iostream>
+#include <cfgmgr32.h>
+#include <versionHelpers.h>
 
 #include "../builds/debug/detours/detours.h"
-#include "./serialization.cpp"
-#include "./hook_utils.cpp"
+#include "hook_utils.cpp"
+
 
 typedef struct {
     PVOID *og;
     PVOID  hooked;
 } Hook;
 
-// MessageBoxA --------------------------------------------------------------------------------- //
+//  MessageBoxA : -------------------------------------------------------------------- (section)  //
+static int(WINAPI *og_MessageBoxA)(HWND   hWnd,
+                                   LPCSTR lpText,
+                                   LPCSTR lpCaption,
+                                   UINT   uType) = MessageBoxA;
+static int WINAPI
+hooked_MessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 
-static int (WINAPI *og_MessageBoxA)(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) = MessageBoxA;
-static int WINAPI hooked_MessageBoxA (HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
-
-	if(IsDebuggerPresent()) {
-		__debugbreak();
-	}
-    std::cout << "Inside the message box hook";
+    SEND_BEFORE_CALL
 
     int result;
     TIME({ result = og_MessageBoxA(hWnd, lpText, lpCaption, uType); });
 
-
-	if(IsDebuggerPresent()) {
-		__debugbreak();
-	}
-    result = 24;
-
-    return 0;
-}
-
-static Hook GLBL_hooks[] = {
-    {&(void *&)og_MessageBoxA, (void *)hooked_MessageBoxA},
-};
-
-// --------------------------------------------------------------------------------------------- //
-
-
-// CreateProcessA
-static BOOL(WINAPI *TrueCreateProcessA)(LPCSTR                lpApplicationName,
-                                        LPSTR                 lpCommandLine,
-                                        LPSECURITY_ATTRIBUTES lpProcessAttributes,
-                                        LPSECURITY_ATTRIBUTES lpThreadAttributes,
-                                        BOOL                  bInheritHandles,
-                                        DWORD                 dwCreationFlags,
-                                        LPVOID                lpEnvironment,
-                                        LPCSTR                lpCurrentDirectory,
-                                        LPSTARTUPINFOA        lpStartupInfo,
-                                        LPPROCESS_INFORMATION lpProcessInformation) =
-    CreateProcessA;
-static BOOL WINAPI
-HookedCreateProcessA(LPCSTR                lpApplicationName,
-                     LPSTR                 lpCommandLine,
-                     LPSECURITY_ATTRIBUTES lpProcessAttributes,
-                     LPSECURITY_ATTRIBUTES lpThreadAttributes,
-                     BOOL                  bInheritHandles,
-                     DWORD                 dwCreationFlags,
-                     LPVOID                lpEnvironment,
-                     LPCSTR                lpCurrentDirectory,
-                     LPSTARTUPINFOA        lpStartupInfo,
-                     LPPROCESS_INFORMATION lpProcessInformation) {
-
-    SEND_BEFORE_CALL("CreateProcessA", {
-        BOIL_LPCSTR(lpApplicationName);
-        BOIL_BOOL(bInheritHandles);
-        BOIL_DWORD(dwCreationFlags);
-    })
-
-    BOOL result = TrueCreateProcessA(lpApplicationName,
-                                     lpCommandLine,
-                                     lpProcessAttributes,
-                                     lpThreadAttributes,
-                                     bInheritHandles,
-                                     dwCreationFlags,
-                                     lpEnvironment,
-                                     lpCurrentDirectory,
-                                     lpStartupInfo,
-                                     lpProcessInformation);
-
-    SEND_AFTER_CALL("CreateProcessA", { BOIL_BOOL(result); })
+    SEND_AFTER_CALL
 
     return result;
 }
 
+#include "hooks.hpp"
+//  (section) -------------------------------------------------------------------- : MessageBoxA  //
 
-
-// GetWindow
-static HWND(WINAPI *TrueGetWindow)(HWND, UINT) = GetWindow;
-static HWND
-HookedGetWindow(HWND hWnd, UINT uCmd) {
-
-    SEND_BEFORE_CALL("GetWindow", {
-        BOIL_HWND(hWnd);
-        BOIL_UINT(uCmd);
-    })
-
-    HWND result;
-    TIME({ result = TrueGetWindow(hWnd, uCmd); })
-
-    SEND_AFTER_CALL("GetWindow", { BOIL_HWND(result); })
-
-    return result;
-}
-
-
-
-// CreateRemoteThread
-static HANDLE(WINAPI *TrueCreateRemoteThread)(HANDLE,
-                                              LPSECURITY_ATTRIBUTES,
-                                              SIZE_T,
-                                              LPTHREAD_START_ROUTINE,
-                                              LPVOID,
-                                              DWORD,
-                                              LPDWORD) = CreateRemoteThread;
-static HANDLE
-HookedCreateRemoteThread(HANDLE                 hProcess,
-                         LPSECURITY_ATTRIBUTES  lpThreadAttributes,
-                         SIZE_T                 dwStackSize,
-                         LPTHREAD_START_ROUTINE lpStartAddress,
-                         LPVOID                 lpParameter,
-                         DWORD                  dwCreationFlags,
-                         LPDWORD                lpThreadId // out
-) {
-
-    SEND_BEFORE_CALL("CreateRemoteThread", {
-        BOIL_HANDLE(hProcess);
-        BOIL_SIZE_T(dwStackSize);
-        BOIL_DWORD(dwCreationFlags);
-    })
-
-    HANDLE result = TrueCreateRemoteThread(hProcess,
-                                           lpThreadAttributes,
-                                           dwStackSize,
-                                           lpStartAddress,
-                                           lpParameter,
-                                           dwCreationFlags,
-                                           lpThreadId);
-
-    SEND_AFTER_CALL("CreateRemoteThread", { BOIL_HANDLE(result); })
-
-    return result;
-}
-
-
-
-// LoadLibraryA
-static HMODULE(WINAPI *TrueLoadLibraryA)(LPCSTR lpLibFileName) = LoadLibraryA;
-
-static HMODULE WINAPI
-HookedLoadLibraryA(LPCSTR lpLibFileName) {
-
-    SEND_BEFORE_CALL("LoadLibraryA", { BOIL_LPCSTR(lpLibFileName); })
-
-    HMODULE result = TrueLoadLibraryA(lpLibFileName);
-
-    SEND_AFTER_CALL("LoadLibraryA", { BOIL_HANDLE(result); })
-
-    return result;
-}
-
-
-
-// VirtualAlloc
-static LPVOID(WINAPI *TrueVirtualAlloc)(LPVOID lpAddress,
-                                        SIZE_T dwSize,
-                                        DWORD  flAllocationType,
-                                        DWORD  flProtect) = VirtualAlloc;
-
-static LPVOID WINAPI
-HookedVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect) {
-
-    SEND_BEFORE_CALL("VirtualAlloc", {
-        BOIL_LPVOID(lpAddress);
-        BOIL_SIZE_T(dwSize);
-        BOIL_DWORD(flAllocationType);
-        BOIL_DWORD(flProtect);
-    })
-
-    LPVOID result = TrueVirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
-
-    SEND_AFTER_CALL("VirtualAlloc", { BOIL_LPVOID(result); })
-
-    return result;
-}
-
-
-/*
-// VirtualProtect
-static BOOL(WINAPI *TrueVirtualProtect)(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect,
-                                        PDWORD lpflOldProtect) = VirtualProtect;
-
-static BOOL WINAPI
-HookedVirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect)
-{
-
-    SEND_BEFORE_CALL({
-        start_json_before("VirtualProtect");
-        log_fields("lpAddress", BOIL(lpAddress));
-        log_fields("dwSize", BOIL(dwSize));
-        log_fields("flNewProtect", BOIL(flNewProtect));
-        log_fields("lpflOldProtect", BOIL(lpflOldProtect), true);
-    })
-
-    BOOL result;
-    TIME({ result = TrueVirtualProtect(lpAddress, dwSize, flNewProtect, lpflOldProtect); })
-
-    SEND_AFTER_CALL({
-        start_json_after("VirtualProtect");
-        log_fields("result", BOIL(result));
-        log_fields("lpflOldProtect", BOIL(lpflOldProtect), true);
-    })
-
-    return result;
-}
-*/
-
-
-
-// Sleep
-static VOID(WINAPI *TrueSleep)(DWORD dwMilliseconds) = Sleep;
-
-static VOID WINAPI
-HookedSleep(DWORD dwMilliseconds) {
-
-    SEND_BEFORE_CALL("Sleep", { BOIL_DWORD(dwMilliseconds); })
-
-    TrueSleep(dwMilliseconds);
-
-    SEND_AFTER_CALL("Sleep", )
-}
-
-
-
-// SendMessage
-static LRESULT(WINAPI *TrueSendMessage)(HWND   hWnd,
-                                        UINT   Msg,
-                                        WPARAM wParam,
-                                        LPARAM lParam) = SendMessage;
-
-static LRESULT WINAPI
-HookedSendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
-
-    SEND_BEFORE_CALL("SendMessage", {
-        BOIL_HWND(hWnd);
-        BOIL_UINT(Msg);
-        BOIL_WPARAM(wParam);
-        BOIL_LPARAM(lParam);
-    })
-
-    LRESULT result = TrueSendMessage(hWnd, Msg, wParam, lParam);
-
-    SEND_AFTER_CALL("sendMessage", { BOIL_LRESULT(result); })
-
-    return result;
-}
-
-
-
-// WriteProcessMemory
-static BOOL(WINAPI *TrueWriteProcessMemory)(HANDLE  hProcess,
-                                            LPVOID  lpBaseAddress,
-                                            LPCVOID lpBuffer,
-                                            SIZE_T  nSize,
-                                            SIZE_T *lpNumberOfBytesWritten) = WriteProcessMemory;
-static BOOL WINAPI
-HookedWriteProcessMemory(HANDLE  hProcess,
-                         LPVOID  lpBaseAddress,
-                         LPCVOID lpBuffer,
-                         SIZE_T  nSize,
-                         SIZE_T *lpNumberOfBytesWritten) {
-    SEND_BEFORE_CALL("WriteProcessMemory", {
-        BOIL_HANDLE(hProcess);
-        BOIL_LPVOID(lpBaseAddress);
-        BOIL_LPCVOID(lpBuffer);
-        BOIL_SIZE_T(nSize);
-    })
-
-    BOOL result =
-        TrueWriteProcessMemory(hProcess, lpBaseAddress, lpBuffer, nSize, lpNumberOfBytesWritten);
-
-    SEND_AFTER_CALL("WriteProcessMemory", {
-        BOIL_PSIZE_T(lpNumberOfBytesWritten);
-        BOIL_BOOL(result);
-    })
-
-    return result;
-}
 
 
 __declspec(dllexport) BOOL APIENTRY
@@ -302,36 +46,21 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
 
-        DetourAttach(GLBL_hooks[0].og, GLBL_hooks[0].hooked);
-
-        // DetourAttach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
-        //
-        // DetourAttach(&(PVOID &)TrueGetWindow, &(PVOID &)HookedGetWindow);
-        //
-        // DetourAttach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
-
-        // DetourAttach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
-
-        // DetourAttach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
-
-        // DetourAttach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
-
-        // DetourAttach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
-
-        // DetourAttach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
-
-        // DetourAttach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);
+        for (int64_t idx = 0; idx < sizeof(GLBL_hooks) / sizeof(GLBL_hooks[0]); idx += 1) {
+            DetourAttach(GLBL_hooks[idx].og, GLBL_hooks[idx].hooked);
+        }
 
         DetourTransactionCommit();
         OutputDebugStringA("commited hook");
 
 
-        // // Time Init ----------------------------------------------------------- //
-        // LARGE_INTEGER FreqStructResult = {};
-        // QueryPerformanceFrequency(&FreqStructResult);
-        // PerfCounterFrequency = FreqStructResult.QuadPart;
-        //
-        //
+        // Time Init ---------------------------------------------------------------------------- //
+        LARGE_INTEGER FreqStructResult = {};
+        QueryPerformanceFrequency(&FreqStructResult);
+        PerfCounterFrequency = FreqStructResult.QuadPart;
+
+		IsHookingOn = true;
+
         // // Rolling the ControlPipe Thread ----------------------------------------- //
         //
         // ThreadStopEvent = CreateEventA(0, TRUE, FALSE, 0);
@@ -356,10 +85,10 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         // }
         //
         // // Getting the Sender Running --------------------------------------------- //
-        //
-        // // Why Log when process is yet to attach
-        // IsHookingOn = true;
-        //
+
+
+        // Why Log when process is yet to attach
+
         // HookBuffer =
         //     (uint8_t *)VirtualAlloc(NULL, BUFFER_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
         // if (HookBuffer == NULL) {
@@ -369,8 +98,11 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         // std::cerr << "Allocated Hook Buffer\n";
         //
         // LOG("STARTED");
+		OutputDebugStringA("hooked all");
 
     } else if (reason == DLL_PROCESS_DETACH) {
+
+		IsHookingOn = false;
 
         // IsHookingOn = false;
         // VirtualFree(HookBuffer, 0, MEM_RELEASE);
@@ -425,32 +157,16 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         //     HookPipeHandle = INVALID_HANDLE_VALUE;
         // }
 
-        // Unrolling Hooks -------------------------------------------------------------- //
+        // Unrolling Hooks ---------------------------------------------------------------------- //
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
 
-
-        DetourDetach(GLBL_hooks[0].og, GLBL_hooks[0].hooked);
-
-        // DetourDetach(&(PVOID &)TrueCreateProcessA, &(PVOID &)HookedCreateProcessA);
-        //
-        // DetourDetach(&(PVOID &)TrueGetWindow, &(PVOID &)HookedGetWindow);
-        //
-        // DetourDetach(&(PVOID &)TrueCreateRemoteThread, &(PVOID &)HookedCreateRemoteThread);
-
-        // DetourDetach(&(PVOID &)TrueLoadLibraryA, &(PVOID &)HookedLoadLibraryA);
-
-        // DetourDetach(&(PVOID &)TrueVirtualAlloc, &(PVOID &)HookedVirtualAlloc);
-
-        // DetourDetach(&(PVOID &)TrueVirtualProtect, &(PVOID &)HookedVirtualProtect);
-
-        // DetourDetach(&(PVOID &)TrueSleep, &(PVOID &)HookedSleep);
-
-        // DetourDetach(&(PVOID &)TrueSendMessage, &(PVOID &)HookedSendMessage);
-
-        // DetourDetach(&(PVOID &)TrueWriteProcessMemory, &(PVOID &)HookedWriteProcessMemory);
+        for (int64_t idx = 0; idx < sizeof(GLBL_hooks) / sizeof(GLBL_hooks[0]); idx += 1) {
+            DetourDetach(GLBL_hooks[idx].og, GLBL_hooks[idx].hooked);
+        }
 
         DetourTransactionCommit();
+		OutputDebugStringA("un hooked all");
 
         // LOG("ENDED");
         // if (LogPipeHandle != INVALID_HANDLE_VALUE) {

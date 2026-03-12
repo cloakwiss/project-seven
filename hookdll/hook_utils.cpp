@@ -9,14 +9,14 @@
 #include <atomic>
 
 
-static thread_local uint64_t           GlobalCallDepth      = 0;
-static thread_local uint64_t           GlobalMaxCallDepth   = 0;
-static thread_local bool               IsHookingOn          = false;
-static thread_local int64_t            PerfCounterFrequency = 0;
-static thread_local double             TimeElapsed          = 0;
-static thread_local uint8_t           *HookBuffer           = NULL;
-static thread_local size_t             HookBufferHead       = 0;
-static thread_local std::ostringstream Logger;
+static uint64_t           GlobalCallDepth    = 0;
+static uint64_t           GlobalMaxCallDepth = 0;
+static bool               IsHookingOn        = false;
+static uint8_t           *HookBuffer         = NULL;
+static size_t             HookBufferHead     = 0;
+static std::ostringstream Logger;
+
+static int64_t PerfCounterFrequency = 0;
 
 static std::atomic<bool> StopBeforeCall{true};
 static std::atomic<bool> StopAfterCall{true};
@@ -39,10 +39,7 @@ const LPCSTR LogPipeName     = TEXT("\\\\.\\pipe\\P7_LOGS");
 #define HOOK_RET_ID  0x28
 
 
-// ---------------------------------------------------------------------------------------------- //
-// Sending to P7 -------------------------------------------------------------------------------- //
-// ---------------------------------------------------------------------------------------------- //
-
+//  senders via pipe : --------------------------------------------------------------- (section)  //
 static void
 SendHookBuffer(uint8_t *buffer, size_t len) {
     if (HookPipeHandle == INVALID_HANDLE_VALUE) {
@@ -87,12 +84,11 @@ SendLog(const char *text) {
         std::cout << "[HOOK] " << expr << '\n';                                                    \
         SendLog(Logger.str().c_str());                                                             \
     } while (0)
+//  (section) --------------------------------------------------------------- : senders via pipe  //
 
 
-// ---------------------------------------------------------------------------------------------- //
-// Controls Listener ---------------------------------------------------------------------------- //
-// ---------------------------------------------------------------------------------------------- //
 
+//  controls listener : -------------------------------------------------------------- (section)  //
 #define START_SIG  0x21
 #define STOP_SIG   0x22
 #define RESUME_SIG 0x23
@@ -107,8 +103,8 @@ ControlListener(LPVOID lpParam) {
 
     while (IsThreadRunning) {
 
-        // Thread Handling ---------------------------------------------------------------------- //
-
+        //  thread handling : -------------------------------------------------------- (section)  //
+        //
         // This is the part that stops cpu melting btw, no extra sleep
         // and THIS IS A BUSY WORKING THREAD
         DWORD wait = WaitForSingleObject(ThreadStopEvent, 50);
@@ -130,10 +126,9 @@ ControlListener(LPVOID lpParam) {
         if (!IsThreadRunning) {
             break;
         }
-        // -------------------------------------------------------------------------------------- //
 
-        // Reading the signal from the ControlPipe ---------------------------------------------- //
-
+        //  reading signal from control pipe : --------------------------------------- (section)  //
+        //
         /* TODO: Dont know if we need overlapped io for this */
         // OVERLAPPED OverLapEvent = {};
         // OverLapEvent.hEvent = CreateEventA(0, TRUE, FALSE, 0);
@@ -205,19 +200,14 @@ ControlListener(LPVOID lpParam) {
         }
 
         // CloseHandle(OverLapEvent.hEvent);
-
-        // -------------------------------------------------------------------------------------- //
     }
     return 0;
 }
-// ---------------------------------------------------------------------------------------------- //
+//  (section) -------------------------------------------------------------- : controls listener  //
 
 
 
-// ---------------------------------------------------------------------------------------------- //
-// Stepping Utilities --------------------------------------------------------------------------- //
-// ---------------------------------------------------------------------------------------------- //
-
+//  stepping utility : --------------------------------------------------------------- (section)  //
 static void
 ControlBefore() {
 
@@ -246,13 +236,13 @@ ControlAfter() {
     }
     Break.store(false);
 }
+//  (section) --------------------------------------------------------------- : stepping utility  //
 
 
-// ---------------------------------------------------------------------------------------------- //
-// Hook Macros ---------------------------------------------------------------------------------- //
-// ---------------------------------------------------------------------------------------------- //
+//  hook macros : -------------------------------------------------------------------- (section)  //
 
-#define SEND_BEFORE_CALL(ID, CODE)                                                                 \
+
+#define SEND_BEFORE_CALL()                                                                         \
     if (GlobalCallDepth <= GlobalMaxCallDepth && IsHookingOn) {                                    \
         IsHookingOn = false;                                                                       \
         InitHookCall((char *)ID);                                                                  \
@@ -272,21 +262,47 @@ ControlAfter() {
         SendHookBuffer(HookBuffer, HookBufferHead);                                                \
         ControlAfter();                                                                            \
         IsHookingOn = true;                                                                        \
-    }                                                                                              \
-    TimeElapsed = 0.0f;
+    }
 
+#undef SEND_AFTER_CALL
+#undef SEND_BEFORE_CALL
+
+#define SEND_BEFORE_CALL                                                                           \
+    do {                                                                                           \
+        if (IsHookingOn) {                                                                         \
+            IsHookingOn = false;                                                                   \
+            if (IsDebuggerPresent()) {                                                             \
+                __debugbreak();                                                                    \
+                IsHookingOn = true;                                                                \
+            }                                                                                      \
+        }                                                                                          \
+    } while (0);
+
+#define SEND_AFTER_CALL                                                                            \
+    do {                                                                                           \
+        GlobalCallDepth -= 1;                                                                      \
+        if (IsHookingOn) {                                                                         \
+            IsHookingOn = false;                                                                   \
+            if (IsDebuggerPresent()) {                                                             \
+                __debugbreak();                                                                    \
+            }                                                                                      \
+            IsHookingOn = true;                                                                    \
+        }                                                                                          \
+    } while (0);
 
 #define TIME(CALL)                                                                                 \
-    LARGE_INTEGER BeginCounter;                                                                    \
-    QueryPerformanceCounter(&BeginCounter);                                                        \
-    CALL;                                                                                          \
-    LARGE_INTEGER EndCounter;                                                                      \
-    QueryPerformanceCounter(&EndCounter);                                                          \
-    int64_t CounterElapsed = EndCounter.QuadPart - BeginCounter.QuadPart;                          \
-    TimeElapsed = 1000.0f * 1000.0f * (double)CounterElapsed / (double)PerfCounterFrequency;
-
-// ---------------------------------------------------------------------------------------------- //
-// ---------------------------------------------------------------------------------------------- //
+    do {                                                                                           \
+        LARGE_INTEGER BeginCounter;                                                                \
+        QueryPerformanceCounter(&BeginCounter);                                                    \
+        CALL;                                                                                      \
+        LARGE_INTEGER EndCounter;                                                                  \
+        QueryPerformanceCounter(&EndCounter);                                                      \
+        double Time_Elapsed_In_Nano_Sec =                                                          \
+            (double)(EndCounter.QuadPart - BeginCounter.QuadPart) / (double)PerfCounterFrequency;  \
+        double Time_Elapsed_In_Micro_Sec = 1000.0f * Time_Elapsed_In_Nano_Sec;                     \
+        double Time_Elapsed_In_Milli_Sec = 1000.0f * Time_Elapsed_In_Micro_Sec;                    \
+    } while (0)
+//  (section) -------------------------------------------------------------------- : hook macros  //
 
 
 // --------------------------------------------------------------------------------------------- //
