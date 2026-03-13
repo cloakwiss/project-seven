@@ -10,7 +10,7 @@
 
 
 static uint64_t           GlobalCallDepth    = 0;
-static uint64_t           GlobalMaxCallDepth = 0;
+static uint64_t           GlobalMaxCallDepth = 5;
 static bool               IsHookingOn        = false;
 static uint8_t           *HookBuffer         = NULL;
 static size_t             HookBufferHead     = 0;
@@ -269,19 +269,20 @@ ControlAfter() {
 
 #define SEND_BEFORE_CALL                                                                           \
     do {                                                                                           \
-        if (IsHookingOn) {                                                                         \
+        if ((GlobalCallDepth <= GlobalMaxCallDepth) && IsHookingOn) {                              \
             IsHookingOn = false;                                                                   \
             if (IsDebuggerPresent()) {                                                             \
                 __debugbreak();                                                                    \
                 IsHookingOn = true;                                                                \
             }                                                                                      \
         }                                                                                          \
+        GlobalCallDepth += 1;                                                                      \
     } while (0);
 
 #define SEND_AFTER_CALL                                                                            \
     do {                                                                                           \
         GlobalCallDepth -= 1;                                                                      \
-        if (IsHookingOn) {                                                                         \
+        if ((GlobalCallDepth <= GlobalMaxCallDepth) && IsHookingOn) {                              \
             IsHookingOn = false;                                                                   \
             if (IsDebuggerPresent()) {                                                             \
                 __debugbreak();                                                                    \
