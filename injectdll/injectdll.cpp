@@ -1,3 +1,5 @@
+#pragma comment(lib, "./detours/detours.lib")
+
 #ifndef INJECT_HOOK_DLL_H
 #define INJECT_HOOK_DLL_H
 // --------------------------------------------------------------------------------------------- //
@@ -37,8 +39,10 @@ static CHAR s_szDllPath[MAX_PATH] = "";
 //  ordinal #1 so that the import table touch-up magic works.
 //
 static BOOL CALLBACK
-IHDExportCallback(_In_opt_ PVOID pContext, _In_ ULONG nOrdinal, _In_opt_ LPCSTR pszName,
-                  _In_opt_ PVOID pCode) {
+IHDExportCallback(_In_opt_ PVOID  pContext,
+                  _In_ ULONG      nOrdinal,
+                  _In_opt_ LPCSTR pszName,
+                  _In_opt_ PVOID  pCode) {
     (void)pContext;
     (void)pCode;
     (void)pszName;
@@ -55,7 +59,8 @@ static BOOL
 IHDDoesDllExportOrdinal1(PCHAR pszDllPath) {
     HMODULE hDll = LoadLibraryExA(pszDllPath, NULL, DONT_RESOLVE_DLL_REFERENCES);
     if (hDll == NULL) {
-        printf("InjectHookDll: LoadLibraryEx(%s) failed with error %ld.\n", pszDllPath,
+        printf("InjectHookDll: LoadLibraryEx(%s) failed with error %ld.\n",
+               pszDllPath,
                GetLastError());
         return FALSE;
     }
@@ -69,7 +74,8 @@ IHDDoesDllExportOrdinal1(PCHAR pszDllPath) {
 
 
 static BOOL CALLBACK
-IHDListBywayCallback(_In_opt_ PVOID pContext, _In_opt_ LPCSTR pszFile,
+IHDListBywayCallback(_In_opt_ PVOID                    pContext,
+                     _In_opt_ LPCSTR                   pszFile,
                      _Outptr_result_maybenull_ LPCSTR *ppszOutFile) {
     (void)pContext;
 
@@ -83,7 +89,9 @@ IHDListBywayCallback(_In_opt_ PVOID pContext, _In_opt_ LPCSTR pszFile,
 
 
 static BOOL CALLBACK
-IHDListFileCallback(_In_opt_ PVOID pContext, _In_ LPCSTR pszOrigFile, _In_ LPCSTR pszFile,
+IHDListFileCallback(_In_opt_ PVOID                    pContext,
+                    _In_ LPCSTR                       pszOrigFile,
+                    _In_ LPCSTR                       pszFile,
                     _Outptr_result_maybenull_ LPCSTR *ppszOutFile) {
     (void)pContext;
 
@@ -95,11 +103,12 @@ IHDListFileCallback(_In_opt_ PVOID pContext, _In_ LPCSTR pszOrigFile, _In_ LPCST
 
 
 static BOOL CALLBACK
-IHDAddBywayCallback(_In_opt_ PVOID pContext, _In_opt_ LPCSTR pszFile,
+IHDAddBywayCallback(_In_opt_ PVOID                    pContext,
+                    _In_opt_ LPCSTR                   pszFile,
                     _Outptr_result_maybenull_ LPCSTR *ppszOutFile) {
     PBOOL pbAddedDll = (PBOOL)pContext;
     if (!pszFile && !*pbAddedDll) { // Add new byway.
-        *pbAddedDll = TRUE;
+        *pbAddedDll  = TRUE;
         *ppszOutFile = s_szDllPath;
     }
     return TRUE;
@@ -109,9 +118,9 @@ IHDAddBywayCallback(_In_opt_ PVOID pContext, _In_opt_ LPCSTR pszFile,
 
 BOOL
 IHDSetFile(PCHAR pszPath, bool Remove) {
-    BOOL bGood = TRUE;
-    HANDLE hOld = INVALID_HANDLE_VALUE;
-    HANDLE hNew = INVALID_HANDLE_VALUE;
+    BOOL           bGood   = TRUE;
+    HANDLE         hOld    = INVALID_HANDLE_VALUE;
+    HANDLE         hNew    = INVALID_HANDLE_VALUE;
     PDETOUR_BINARY pBinary = NULL;
 
     CHAR szOrg[MAX_PATH];
@@ -128,8 +137,8 @@ IHDSetFile(PCHAR pszPath, bool Remove) {
     StringCchCatA(szOld, sizeof(szOld), "~");
     printf("  %s:\n", pszPath);
 
-    hOld = CreateFileA(szOrg, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
-                       FILE_ATTRIBUTE_NORMAL, NULL);
+    hOld = CreateFileA(
+        szOrg, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (hOld == INVALID_HANDLE_VALUE) {
         printf("Couldn't open input file: %s, error: %ld\n", szOrg, GetLastError());
@@ -137,8 +146,13 @@ IHDSetFile(PCHAR pszPath, bool Remove) {
         goto end;
     }
 
-    hNew = CreateFileA(szNew, GENERIC_WRITE | GENERIC_READ, 0, NULL, CREATE_ALWAYS,
-                       FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    hNew = CreateFileA(szNew,
+                       GENERIC_WRITE | GENERIC_READ,
+                       0,
+                       NULL,
+                       CREATE_ALWAYS,
+                       FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
+                       NULL);
     if (hNew == INVALID_HANDLE_VALUE) {
         printf("Couldn't open output file: %s, error: %ld\n", szNew, GetLastError());
         bGood = FALSE;
@@ -161,14 +175,14 @@ IHDSetFile(PCHAR pszPath, bool Remove) {
         DetourBinaryResetImports(pBinary);
 
         if (!Remove) {
-            if (!DetourBinaryEditImports(pBinary, &bAddedDll, IHDAddBywayCallback, NULL, NULL,
-                                         NULL)) {
+            if (!DetourBinaryEditImports(
+                    pBinary, &bAddedDll, IHDAddBywayCallback, NULL, NULL, NULL)) {
                 printf("DetourBinaryEditImports failed: %ld\n", GetLastError());
             }
         }
 
-        if (!DetourBinaryEditImports(pBinary, NULL, IHDListBywayCallback, IHDListFileCallback, NULL,
-                                     NULL)) {
+        if (!DetourBinaryEditImports(
+                pBinary, NULL, IHDListBywayCallback, IHDListFileCallback, NULL, NULL)) {
 
             printf("DetourBinaryEditImports failed: %ld\n", GetLastError());
         }
@@ -226,7 +240,7 @@ end:
 
 
 
-int
+extern "C" int
 InjectHookDll(char *Dll, char *Executable, bool Remove) {
     StringCchPrintfA(s_szDllPath, sizeof(s_szDllPath), "%s", Dll);
 

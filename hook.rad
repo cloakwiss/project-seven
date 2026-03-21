@@ -2,6 +2,8 @@
 
 recent_file: path: "hookdll/hooks.hpp"
 recent_file: path: "hookdll/hook.cpp"
+recent_file: path: "C:/Users/91724/cpp/graphics_api_test/vulkan/vulkan.c"
+recent_file: path: "C:/SDKBuild/build-X64-1.4.341.0/Vulkan-ValidationLayers/layers/state_tracker/shader_module.cpp"
 recent_file: path: "D:/a/_work/1/s/src/vctools/crt/vcstartup/src/startup/exe_common.inl"
 recent_file: path: "sample_targets/MessageBox.cpp"
 recent_file: path: "D:/HeavyPrograms/VisualStudio2026/VC/Tools/MSVC/14.50.35717/include/__msvc_ostream.hpp"
@@ -14,11 +16,21 @@ debug_info:
 debug_info:
 {
   path: "E:/tmp/proj-mini/p7/builds/debug/hook.pdb"
-  timestamp: 66209186507962
+  timestamp: 66209900937452
 }
 breakpoint:
 {
   source_location: "hookdll/hooks.hpp:385:1"
   enabled: 0
   hit_count: 0
+}
+debug_info:
+{
+  path: "C:/Users/91724/cpp/graphics_api_test/vulkan/vulkan.pdb"
+  timestamp: 66205660751329
+}
+debug_info:
+{
+  path: "C:/VulkanSDK/1.4.341.0/Bin/VkLayer_khronos_validation.pdb"
+  timestamp: 66205250650697
 }

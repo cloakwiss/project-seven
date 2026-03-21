@@ -6,11 +6,9 @@
 #include <windows.h>
 #include <iostream>
 #include <sstream>
-#include <atomic>
-
 
 static uint64_t           GlobalCallDepth    = 0;
-static uint64_t           GlobalMaxCallDepth = 5;
+static uint64_t           GlobalMaxCallDepth = 0;
 static bool               IsHookingOn        = false;
 static uint8_t           *HookBuffer         = NULL;
 static size_t             HookBufferHead     = 0;
@@ -41,7 +39,7 @@ const LPCSTR LogPipeName     = TEXT("\\\\.\\pipe\\P7_LOGS");
 
 //  senders via pipe : --------------------------------------------------------------- (section)  //
 static void
-SendHookBuffer(uint8_t *buffer, size_t len) {
+SendHookId(uint64_t id) {
     if (HookPipeHandle == INVALID_HANDLE_VALUE) {
         HookPipeHandle = CreateFileA(HookPipeName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
@@ -53,9 +51,8 @@ SendHookBuffer(uint8_t *buffer, size_t len) {
     }
 
     DWORD bytesWritten = 0;
-    WriteFile(HookPipeHandle, buffer, (DWORD)len, &bytesWritten, NULL);
+    WriteFile(HookPipeHandle, &id, sizeof(id), &bytesWritten, NULL);
     FlushFileBuffers(HookPipeHandle);
-    ZeroMemory(buffer, len);
     HookBufferHead = 0;
 }
 
@@ -267,10 +264,11 @@ ControlAfter() {
 #undef SEND_AFTER_CALL
 #undef SEND_BEFORE_CALL
 
-#define SEND_BEFORE_CALL                                                                           \
+#define SEND_BEFORE_CALL(id)                                                                       \
     do {                                                                                           \
         if ((GlobalCallDepth <= GlobalMaxCallDepth) && IsHookingOn) {                              \
             IsHookingOn = false;                                                                   \
+            SendHookId(id);                                                                        \
             if (IsDebuggerPresent()) {                                                             \
                 __debugbreak();                                                                    \
                 IsHookingOn = true;                                                                \
@@ -292,17 +290,15 @@ ControlAfter() {
     } while (0);
 
 #define TIME(CALL)                                                                                 \
-    do {                                                                                           \
-        LARGE_INTEGER BeginCounter;                                                                \
-        QueryPerformanceCounter(&BeginCounter);                                                    \
-        CALL;                                                                                      \
-        LARGE_INTEGER EndCounter;                                                                  \
-        QueryPerformanceCounter(&EndCounter);                                                      \
-        double Time_Elapsed_In_Nano_Sec =                                                          \
-            (double)(EndCounter.QuadPart - BeginCounter.QuadPart) / (double)PerfCounterFrequency;  \
-        double Time_Elapsed_In_Micro_Sec = 1000.0f * Time_Elapsed_In_Nano_Sec;                     \
-        double Time_Elapsed_In_Milli_Sec = 1000.0f * Time_Elapsed_In_Micro_Sec;                    \
-    } while (0)
+    LARGE_INTEGER BeginCounter;                                                                    \
+    QueryPerformanceCounter(&BeginCounter);                                                        \
+    CALL;                                                                                          \
+    LARGE_INTEGER EndCounter;                                                                      \
+    QueryPerformanceCounter(&EndCounter);                                                          \
+    double Time_Elapsed_In_Nano_Sec =                                                              \
+        (double)(EndCounter.QuadPart - BeginCounter.QuadPart) / (double)PerfCounterFrequency;      \
+    double Time_Elapsed_In_Micro_Sec = 1000.0f * Time_Elapsed_In_Nano_Sec;                         \
+    double Time_Elapsed_In_Milli_Sec = 1000.0f * Time_Elapsed_In_Micro_Sec;                        \
 //  (section) -------------------------------------------------------------------- : hook macros  //
 
 

@@ -22,7 +22,7 @@ static int(WINAPI *og_MessageBoxA)(HWND   hWnd,
 static int WINAPI
 hooked_MessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
 
-    SEND_BEFORE_CALL
+    SEND_BEFORE_CALL(1203)
 
     int result;
     TIME({ result = og_MessageBoxA(hWnd, lpText, lpCaption, uType); });
@@ -59,7 +59,7 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         QueryPerformanceFrequency(&FreqStructResult);
         PerfCounterFrequency = FreqStructResult.QuadPart;
 
-		IsHookingOn = true;
+		// IsHookingOn = true;
 
         // // Rolling the ControlPipe Thread ----------------------------------------- //
         //
