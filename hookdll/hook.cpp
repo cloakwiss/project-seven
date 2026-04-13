@@ -150,12 +150,12 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         // }
         //
         //
-        // // Unrolling Hook Pipe Handles -------------------------------------------------- //
-        //
-        // if (HookPipeHandle != INVALID_HANDLE_VALUE) {
-        //     CloseHandle(HookPipeHandle);
-        //     HookPipeHandle = INVALID_HANDLE_VALUE;
-        // }
+        // Unrolling Hook Pipe Handles -------------------------------------------------- //
+
+        if (HookPipeHandle != INVALID_HANDLE_VALUE) {
+            CloseHandle(HookPipeHandle);
+            HookPipeHandle = INVALID_HANDLE_VALUE;
+        }
 
         // Unrolling Hooks ---------------------------------------------------------------------- //
         DetourTransactionBegin();
