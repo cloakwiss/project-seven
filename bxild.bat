@@ -13,4 +13,4 @@ REM popd
 
 builds\debug\main.exe -e:.\builds\debug\samples\MessageBox.exe -d:E:\tmp\proj-mini\p7\builds\debug\hook.dll
 
-raddbg --project:"hook.rad" builds\debug\samples\MessageBox.exe
+raddbg  --project:"hook.rad" builds\debug\samples\MessageBox.exe --auto_run -q

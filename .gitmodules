@@ -7,3 +7,6 @@
 [submodule "ntdoc-scrape"]
 	path = ntdoc-scrape
 	url = https://github.com/cloakwiss/ntdoc-scrape.git
+[submodule "giu_ui"]
+	path = giu_ui
+	url = https://github.com/Adibahe/giu_ui

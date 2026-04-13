@@ -1,7 +1,7 @@
 package inject
 
 /*
-#cgo LDFLAGS: -L../../builds/debug/ -linjectdll 
+#cgo LDFLAGS: -L../../../../builds/debug/ -linjectdll 
 
 #include<stdlib.h>
 #include<stdint.h>
