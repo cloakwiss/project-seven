@@ -59,7 +59,7 @@ DllMain(HMODULE hModule, DWORD reason, LPVOID _) {
         QueryPerformanceFrequency(&FreqStructResult);
         PerfCounterFrequency = FreqStructResult.QuadPart;
 
-		// IsHookingOn = true;
+		IsHookingOn = true;
 
         // // Rolling the ControlPipe Thread ----------------------------------------- //
         //

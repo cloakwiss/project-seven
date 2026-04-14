@@ -1,7 +1,7 @@
 // raddbg 0.9.25 project file
 
-recent_file: path: "hookdll/hook.cpp"
 recent_file: path: "hookdll/hooks.hpp"
+recent_file: path: "hookdll/hook.cpp"
 recent_file: path: "../../raddebugger/src/raddbg/raddbg_main.c"
 recent_file: path: "../../raddebugger/src/base/base_entry_point.c"
 recent_file: path: "../../raddebugger/src/base/base_strings.c"
@@ -21,7 +21,7 @@ debug_info:
 debug_info:
 {
   path: "E:/tmp/proj-mini/p7/builds/debug/hook.pdb"
-  timestamp: 66211469658313
+  timestamp: 66212012823729
 }
 debug_info:
 {
