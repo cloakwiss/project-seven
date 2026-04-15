@@ -1,4 +1,4 @@
-// raddbg 0.9.25 project file
+// raddbg 0.9.21 project file
 
 recent_file: path: "hookdll/hooks.hpp"
 recent_file: path: "hookdll/hook.cpp"
@@ -7,8 +7,8 @@ recent_file: path: "../../raddebugger/src/base/base_entry_point.c"
 recent_file: path: "../../raddebugger/src/base/base_strings.c"
 recent_file: path: "../../raddebugger/src/os/core/win32/os_core_win32.c"
 recent_file: path: "d:/os/obj/amd64fre/minkernel/crts/ucrt/src/appcrt/startup/mt/objfre/amd64/minkernel/crts/ucrt/src/appcrt/startup/argv_data.cpp"
-recent_file: path: "C:/Users/91724/cpp/graphics_api_test/vulkan/vulkan.c"
-recent_file: path: "C:/SDKBuild/build-X64-1.4.341.0/Vulkan-ValidationLayers/layers/state_tracker/shader_module.cpp"
+recent_file: path: "../../../../91724/cpp/graphics_api_test/vulkan/vulkan.c"
+recent_file: path: "../../../../../SDKBuild/build-X64-1.4.341.0/Vulkan-ValidationLayers/layers/state_tracker/shader_module.cpp"
 recent_file: path: "D:/a/_work/1/s/src/vctools/crt/vcstartup/src/startup/exe_common.inl"
 recent_file: path: "sample_targets/MessageBox.cpp"
 recent_file: path: "D:/HeavyPrograms/VisualStudio2026/VC/Tools/MSVC/14.50.35717/include/__msvc_ostream.hpp"
@@ -45,4 +45,11 @@ target:
   enabled: 1
   debug_subprocesses: 0
   arguments: "--ipc  run"
+}
+target:
+{
+  executable: "builds/debug/samples/MessageBox.exe"
+  arguments: "-q"
+  working_directory: "builds/debug/samples"
+  enabled: 1
 }
